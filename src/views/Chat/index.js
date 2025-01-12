@@ -14,58 +14,112 @@ import {
 import {useRoute} from '@react-navigation/native';
 import {useGetAllUsersQuery} from '../../redux/api/userApiSlice';
 import {getSocket} from '../../socket';
+import useTypedSelector from '../../hooks/useTypedSelector';
+import {selectedUser} from '../../redux/auth/authSlice';
 
 const Chat = () => {
   const route = useRoute();
   const {userId} = route.params;
+  const currentUser = useTypedSelector(selectedUser);
+
+  const [chatId, setChatId] = useState(null);
   const [message, setMessage] = useState('');
-  const {data: userData} = useGetAllUsersQuery({});
+  const [messages, setMessages] = useState([]);
 
-  // Find selected user from all users
-  const selectedUser = userData?.users?.find(user => user._id === userId);
+  // todo: GET ALL USERS API
+  const {data} = useGetAllUsersQuery({});
 
-  const messages = []; // TODO: Replace with actual messages
+  // todo: Chat user
+  const chatUser = data?.users?.find(user => user._id === userId);
+
+  useEffect(() => {
+    const createChat = async () => {
+      try {
+        const response = await fetch('http://192.168.0.106:5000/api/v1/chats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${currentUser.data.token}`,
+          },
+          body: JSON.stringify({userId}),
+        });
+
+        const data = await response.json();
+        if (data.status === 'success') {
+          setChatId(data.data.chat._id);
+          // Join chat room after creating/accessing chat
+          const socket = getSocket();
+          if (socket) {
+            socket.emit('join chat', data.data.chat._id);
+          }
+        }
+      } catch (error) {
+        console.error('Error creating chat:', error);
+      }
+    };
+
+    createChat();
+  }, [userId]);
 
   const sendMessage = () => {
-    if (!message.trim()) return;
+    if (!message.trim() || !chatId) {
+      return;
+    }
 
     const socket = getSocket();
     if (socket) {
-      socket.emit('new message', {
+      const messageData = {
         content: message,
-        chatId: userId,
+        chatId: chatId,
         messageType: 'text',
-      });
+      };
+
+      console.log('Sending message:', messageData);
+      socket.emit('new message', messageData);
+
+      setMessages(prev => [
+        {
+          sender: currentUser.data.user._id,
+          content: message,
+          createdAt: new Date(),
+          messageType: 'text',
+          chatId,
+        },
+        ...prev,
+      ]);
     }
     setMessage('');
   };
 
-  const renderMessage = ({item}) => (
-    <View
-      style={[
-        styles.messageContainer,
-        item.isSender ? styles.senderMessage : styles.receiverMessage,
-      ]}>
-      <Text
-        style={[styles.messageText, {color: item.isSender ? '#fff' : '#000'}]}>
-        {item.content}
-      </Text>
-      <Text style={[styles.timeText, {color: item.isSender ? '#fff' : '#666'}]}>
-        {item.time}
-      </Text>
-    </View>
-  );
+  const renderMessage = ({item}) => {
+    const isSender = item.sender === currentUser.data.user._id;
+
+    return (
+      <View
+        style={[
+          styles.messageContainer,
+          isSender ? styles.senderMessage : styles.receiverMessage,
+        ]}>
+        <Text style={[styles.messageText, {color: isSender ? '#fff' : '#000'}]}>
+          {item.content}
+        </Text>
+        <Text style={[styles.timeText, {color: isSender ? '#fff' : '#666'}]}>
+          {new Date(item.createdAt).toLocaleTimeString()}
+        </Text>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.userInfo}>
-          <Image source={{uri: selectedUser?.avatar}} style={styles.avatar} />
+          <Image source={{uri: chatUser?.avatar}} style={styles.avatar} />
           <View style={styles.nameContainer}>
-            <Text style={styles.username}>{selectedUser?.username}</Text>
+            <Text style={styles.username}>{chatUser?.username}</Text>
             <Text style={styles.status}>
-              {selectedUser?.isOnline ? 'Online' : 'Offline'}
+              {chatUser?.isOnline ? 'Online' : 'Offline'}
             </Text>
           </View>
         </View>
@@ -75,15 +129,14 @@ const Chat = () => {
       <FlatList
         data={messages}
         renderItem={renderMessage}
-        keyExtractor={item => item.id}
+        keyExtractor={(item, index) => index.toString()}
         contentContainerStyle={styles.messagesList}
         inverted
       />
 
       {/* Input */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 90}>
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
