@@ -77,6 +77,7 @@ const Chat = () => {
     const socket = getSocket();
     if (socket) {
       const messageData = {
+        sender: currentUser.data.user._id,
         content: message,
         chatId: chatId,
         messageType: 'text',
