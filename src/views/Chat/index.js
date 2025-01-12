@@ -1,3 +1,4 @@
+import {API_URL} from '@env';
 import React, {useEffect, useState} from 'react';
 import {
   View,
@@ -12,6 +13,8 @@ import {
   SafeAreaView,
 } from 'react-native';
 import {useRoute} from '@react-navigation/native';
+import axios from 'axios';
+
 import {useGetAllUsersQuery} from '../../redux/api/userApiSlice';
 import {getSocket} from '../../socket';
 import useTypedSelector from '../../hooks/useTypedSelector';
@@ -32,34 +35,39 @@ const Chat = () => {
   // todo: Chat user
   const chatUser = data?.users?.find(user => user._id === userId);
 
-  useEffect(() => {
-    const createChat = async () => {
-      try {
-        const response = await fetch('http://192.168.0.106:5000/api/v1/chats', {
-          method: 'POST',
+  const createChat = async () => {
+    try {
+      const response = await axios.post(
+        `${API_URL}chats`,
+        {userId},
+        {
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${currentUser.data.token}`,
+            Authorization: `Bearer ${currentUser.token}`,
           },
-          body: JSON.stringify({userId}),
-        });
+        },
+      );
 
-        const data = await response.json();
-        if (data.status === 'success') {
-          setChatId(data.data.chat._id);
-          // Join chat room after creating/accessing chat
-          const socket = getSocket();
-          if (socket) {
-            socket.emit('join chat', data.data.chat._id);
-          }
+      const result = response.data;
+
+      if (result.status === 'success') {
+        setChatId(result.data.chat._id);
+        const socket = getSocket();
+        if (socket) {
+          socket.emit('join chat', result.data.chat._id);
         }
-      } catch (error) {
-        console.error('Error creating chat:', error);
       }
-    };
+    } catch (error) {
+      console.error('Error creating chat:', error);
+    }
+  };
 
-    createChat();
-  }, [userId]);
+  useEffect(() => {
+    if (userId && currentUser.token) {
+      createChat();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser.token, userId]);
 
   const sendMessage = () => {
     if (!message.trim() || !chatId) {
