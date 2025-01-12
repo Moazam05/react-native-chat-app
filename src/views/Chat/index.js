@@ -45,10 +45,25 @@ const Chat = () => {
     }
   }, [messagesData]);
 
+  useEffect(() => {
+    const socket = getSocket();
+    if (socket) {
+      // Listen for incoming messages
+      socket.on('message received', newMessage => {
+        if (newMessage.chatId === chatId) {
+          setMessages(prev => [newMessage, ...prev]);
+        }
+      });
+
+      // Cleanup listeners when component unmounts
+      return () => {
+        socket.off('message received');
+      };
+    }
+  }, [chatUser?._id, chatId, chatUser]);
+
   // todo: Chat user
   const chatUser = data?.users?.find(user => user._id === userId);
-
-  console.log('Chat User:', chatUser?.isOnline, chatUser?.username);
 
   const createChat = async () => {
     try {
@@ -69,6 +84,7 @@ const Chat = () => {
         setChatId(result.data.chat._id);
         const socket = getSocket();
         if (socket) {
+          // Join the chat room
           socket.emit('join chat', result.data.chat._id);
         }
       }
