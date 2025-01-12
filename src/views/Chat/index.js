@@ -14,26 +14,41 @@ import {
 } from 'react-native';
 import {useRoute} from '@react-navigation/native';
 import axios from 'axios';
+import {skipToken} from '@reduxjs/toolkit/query';
 
 import {useGetAllUsersQuery} from '../../redux/api/userApiSlice';
 import {getSocket} from '../../socket';
 import useTypedSelector from '../../hooks/useTypedSelector';
 import {selectedUser} from '../../redux/auth/authSlice';
+import {useGetMessageByChatIdQuery} from '../../redux/api/chatApiSlice';
 
 const Chat = () => {
   const route = useRoute();
   const {userId} = route.params;
   const currentUser = useTypedSelector(selectedUser);
 
-  const [chatId, setChatId] = useState(null);
+  const [chatId, setChatId] = useState(skipToken);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
 
   // todo: GET ALL USERS API
   const {data} = useGetAllUsersQuery({});
 
+  // todo: GET MESSAGES BY CHAT ID API
+  const {data: messagesData} = useGetMessageByChatIdQuery(
+    chatId === skipToken ? skipToken : {chatId},
+  );
+
+  useEffect(() => {
+    if (messagesData?.data?.messages) {
+      setMessages(messagesData.data.messages);
+    }
+  }, [messagesData]);
+
   // todo: Chat user
   const chatUser = data?.users?.find(user => user._id === userId);
+
+  console.log('Chat User:', chatUser?.isOnline, chatUser?.username);
 
   const createChat = async () => {
     try {
@@ -69,39 +84,8 @@ const Chat = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser.token, userId]);
 
-  const sendMessage = () => {
-    if (!message.trim() || !chatId) {
-      return;
-    }
-
-    const socket = getSocket();
-    if (socket) {
-      const messageData = {
-        sender: currentUser.data.user._id,
-        content: message,
-        chatId: chatId,
-        messageType: 'text',
-      };
-
-      console.log('Sending message:', messageData);
-      socket.emit('new message', messageData);
-
-      setMessages(prev => [
-        {
-          sender: currentUser.data.user._id,
-          content: message,
-          createdAt: new Date(),
-          messageType: 'text',
-          chatId,
-        },
-        ...prev,
-      ]);
-    }
-    setMessage('');
-  };
-
   const renderMessage = ({item}) => {
-    const isSender = item.sender === currentUser.data.user._id;
+    const isSender = item.sender._id === currentUser.data.user._id;
 
     return (
       <View
@@ -117,6 +101,45 @@ const Chat = () => {
         </Text>
       </View>
     );
+  };
+
+  // 3. Update the sendMessage function to match the message structure
+  const sendMessage = () => {
+    if (!message.trim() || !chatId) {
+      return;
+    }
+
+    const socket = getSocket();
+    if (socket) {
+      const messageData = {
+        sender: currentUser.data.user._id,
+        content: message,
+        chatId: chatId,
+        messageType: 'text',
+      };
+
+      socket.emit('new message', messageData);
+
+      // Update local messages with the correct structure
+      setMessages(prev => [
+        {
+          _id: Date.now().toString(),
+          chatId: chatId,
+          sender: {
+            _id: currentUser.data.user._id,
+            username: currentUser.data.user.username,
+            avatar: currentUser.data.user.avatar,
+          },
+          content: message,
+          messageType: 'text',
+          readBy: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+    }
+    setMessage('');
   };
 
   return (
