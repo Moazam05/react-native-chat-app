@@ -1,10 +1,13 @@
-import {SOCKET_URL} from '@env';
-
+import {ANDROID_SOCKET_URL, IOS_SOCKET_URL} from '@env';
+import {Platform} from 'react-native';
 import io from 'socket.io-client';
 
 let socket;
 
 export const initiateSocket = user => {
+  const SOCKET_URL =
+    Platform.OS === 'android' ? ANDROID_SOCKET_URL : IOS_SOCKET_URL;
+
   socket = io(SOCKET_URL, {
     transports: ['websocket'],
   });

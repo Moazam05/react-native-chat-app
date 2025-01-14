@@ -1,4 +1,4 @@
-import {API_URL} from '@env';
+import {ANDROID_API_URL, IOS_API_URL} from '@env';
 import React, {useEffect, useState} from 'react';
 import {
   View,
@@ -66,9 +66,10 @@ const Chat = () => {
   const chatUser = data?.users?.find(user => user._id === userId);
 
   const createChat = async () => {
+    const url = Platform.OS === 'android' ? ANDROID_API_URL : IOS_API_URL;
     try {
       const response = await axios.post(
-        `${API_URL}chats`,
+        `${url}chats`,
         {userId},
         {
           headers: {

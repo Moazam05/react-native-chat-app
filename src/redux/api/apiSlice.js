@@ -1,11 +1,12 @@
-import {API_URL} from '@env';
+import {ANDROID_API_URL, IOS_API_URL} from '@env';
+import {Platform} from 'react-native';
 import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react';
 
 export const apiSlice = createApi({
   reducerPath: 'api', // Unique and descriptive reducerPath
 
   baseQuery: fetchBaseQuery({
-    baseUrl: API_URL,
+    baseUrl: Platform.OS === 'ios' ? IOS_API_URL : ANDROID_API_URL,
     prepareHeaders: (headers, {getState}) => {
       const token = getState().auth?.user?.token || '';
       if (token) {
