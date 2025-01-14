@@ -14,6 +14,12 @@ export const apiSlice = createApi({
       }
       headers.set('Content-Type', 'application/json');
       headers.set('Accept', 'application/json');
+
+      // Add iOS specific headers if needed
+      if (Platform.OS === 'ios') {
+        headers.set('Cache-Control', 'no-cache');
+      }
+
       return headers;
     },
   }),

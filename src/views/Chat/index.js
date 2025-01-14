@@ -65,8 +65,9 @@ const Chat = () => {
   // todo: Chat user
   const chatUser = data?.users?.find(user => user._id === userId);
 
+  const url = Platform.OS === 'android' ? ANDROID_API_URL : IOS_API_URL;
+
   const createChat = async () => {
-    const url = Platform.OS === 'android' ? ANDROID_API_URL : IOS_API_URL;
     try {
       const response = await axios.post(
         `${url}chats`,
