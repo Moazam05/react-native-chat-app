@@ -30,6 +30,7 @@ const Chat = () => {
   const [chatId, setChatId] = useState(skipToken);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
+  const [isUserOnline, setIsUserOnline] = useState(false);
 
   // todo: GET ALL USERS API
   const {data} = useGetAllUsersQuery({});
@@ -47,20 +48,46 @@ const Chat = () => {
 
   useEffect(() => {
     const socket = getSocket();
-    if (socket) {
-      // Listen for incoming messages
+    if (socket && userId) {
+      // Check initial online status from chatUser data
+      if (chatUser?.isOnline) {
+        setIsUserOnline(true);
+      }
+
+      // Set up online status listener
+      socket.on('user online', onlineUserId => {
+        // console.log('User online event:', onlineUserId, userId);
+        if (onlineUserId === userId) {
+          setIsUserOnline(true);
+        }
+      });
+
+      // Set up offline status listener
+      socket.on('user offline', offlineUserId => {
+        // console.log('User offline event:', offlineUserId, userId);
+        if (offlineUserId === userId) {
+          setIsUserOnline(false);
+        }
+      });
+
+      // Initial check for online status
+      socket.emit('check online', userId);
+
+      // Message listener
       socket.on('message received', newMessage => {
         if (newMessage.chatId === chatId) {
           setMessages(prev => [newMessage, ...prev]);
         }
       });
 
-      // Cleanup listeners when component unmounts
+      // Cleanup listeners
       return () => {
         socket.off('message received');
+        socket.off('user online');
+        socket.off('user offline');
       };
     }
-  }, [chatUser?._id, chatId, chatUser]);
+  }, [chatId, userId, chatUser?.isOnline]);
 
   // todo: Chat user
   const chatUser = data?.users?.find(user => user._id === userId);
@@ -169,7 +196,7 @@ const Chat = () => {
           <View style={styles.nameContainer}>
             <Text style={styles.username}>{chatUser?.username}</Text>
             <Text style={styles.status}>
-              {chatUser?.isOnline ? 'Online' : 'Offline'}
+              {isUserOnline ? 'Online' : 'Offline'}
             </Text>
           </View>
         </View>
