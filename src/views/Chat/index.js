@@ -118,7 +118,6 @@ const Chat = () => {
     if (userId && currentUser.token) {
       createChat();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser.token, userId]);
 
   // 3. Update the sendMessage function to match the message structure
@@ -160,6 +159,82 @@ const Chat = () => {
     setMessage('');
   };
 
+  const handleImageSend = async imageData => {
+    if (!chatId) {
+      return;
+    }
+
+    const formData = new FormData();
+    // Add messageType as form field
+    formData.append('messageType', 'image');
+    // Append file with correct structure
+    formData.append('file', {
+      uri: imageData.uri,
+      type: imageData.type || 'image/jpeg', // Fallback type
+      name: imageData.name || 'image.jpg', // Fallback name
+    });
+
+    const url = Platform.OS === 'android' ? ANDROID_API_URL : IOS_API_URL;
+
+    try {
+      // Using the correct API endpoint format
+      const response = await axios.post(
+        `${url}messages/${chatId}`, // Updated endpoint
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${currentUser.token}`,
+          },
+        },
+      );
+
+      if (response.data.status === 'success') {
+        const messageData = {
+          sender: currentUser.data.user._id,
+          content: response.data.data.message.content,
+          chatId: chatId,
+          messageType: 'image',
+          fileUrl: response.data.data.message.fileUrl,
+          fileName: response.data.data.message.fileName,
+          fileSize: response.data.data.message.fileSize,
+        };
+
+        const socket = getSocket();
+        if (socket) {
+          socket.emit('new message', messageData);
+
+          // Update local messages
+          setMessages(prev => [
+            {
+              _id: Date.now().toString(),
+              chatId: chatId,
+              sender: {
+                _id: currentUser.data.user._id,
+                username: currentUser.data.user.username,
+                avatar: currentUser.data.user.avatar,
+              },
+              content: messageData.content,
+              messageType: 'image',
+              fileUrl: messageData.fileUrl,
+              fileName: messageData.fileName,
+              fileSize: messageData.fileSize,
+              readBy: [],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+            ...prev,
+          ]);
+        }
+      }
+    } catch (error) {
+      console.error(
+        'Error sending image:',
+        error.response?.data || error.message,
+      );
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -173,6 +248,7 @@ const Chat = () => {
         message={message}
         setMessage={setMessage}
         sendMessage={sendMessage}
+        handleImageSend={handleImageSend}
       />
     </SafeAreaView>
   );

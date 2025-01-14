@@ -1,4 +1,4 @@
-import {StyleSheet, FlatList, View, Text} from 'react-native';
+import {StyleSheet, FlatList, View, Text, Image} from 'react-native';
 import React from 'react';
 
 const ChatMessages = ({messages, currentUser}) => {
@@ -11,9 +11,18 @@ const ChatMessages = ({messages, currentUser}) => {
           styles.messageContainer,
           isSender ? styles.senderMessage : styles.receiverMessage,
         ]}>
-        <Text style={[styles.messageText, {color: isSender ? '#fff' : '#000'}]}>
-          {item.content}
-        </Text>
+        {item.messageType === 'image' && item.fileUrl ? (
+          <Image
+            source={{uri: item.fileUrl}}
+            style={styles.messageImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <Text
+            style={[styles.messageText, {color: isSender ? '#fff' : '#000'}]}>
+            {item.content}
+          </Text>
+        )}
         <Text style={[styles.timeText, {color: isSender ? '#fff' : '#666'}]}>
           {new Date(item.createdAt).toLocaleTimeString()}
         </Text>
@@ -60,6 +69,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
     alignSelf: 'flex-end',
+  },
+  messageImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 8,
   },
 });
 
