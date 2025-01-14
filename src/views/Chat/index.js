@@ -1,17 +1,6 @@
 import {ANDROID_API_URL, IOS_API_URL} from '@env';
 import React, {useEffect, useState} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-} from 'react-native';
+import {StyleSheet, Platform, SafeAreaView} from 'react-native';
 import {useRoute} from '@react-navigation/native';
 import axios from 'axios';
 import {skipToken} from '@reduxjs/toolkit/query';
@@ -23,6 +12,7 @@ import {selectedUser} from '../../redux/auth/authSlice';
 import {useGetMessageByChatIdQuery} from '../../redux/api/chatApiSlice';
 import ChatHeader from './components/ChatHeader';
 import ChatInput from './components/ChatInput';
+import ChatMessages from './components/ChatMessages';
 
 const Chat = () => {
   const route = useRoute();
@@ -131,25 +121,6 @@ const Chat = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser.token, userId]);
 
-  const renderMessage = ({item}) => {
-    const isSender = item.sender._id === currentUser.data.user._id;
-
-    return (
-      <View
-        style={[
-          styles.messageContainer,
-          isSender ? styles.senderMessage : styles.receiverMessage,
-        ]}>
-        <Text style={[styles.messageText, {color: isSender ? '#fff' : '#000'}]}>
-          {item.content}
-        </Text>
-        <Text style={[styles.timeText, {color: isSender ? '#fff' : '#666'}]}>
-          {new Date(item.createdAt).toLocaleTimeString()}
-        </Text>
-      </View>
-    );
-  };
-
   // 3. Update the sendMessage function to match the message structure
   const sendMessage = () => {
     if (!message.trim() || !chatId) {
@@ -194,14 +165,8 @@ const Chat = () => {
       {/* Header */}
       <ChatHeader chatUser={chatUser} isUserOnline={isUserOnline} />
 
-      {/* Messages */}
-      <FlatList
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item, index) => index.toString()}
-        contentContainerStyle={styles.messagesList}
-        inverted
-      />
+      {/* Chat Messages */}
+      <ChatMessages messages={messages} currentUser={currentUser} />
 
       {/* Input */}
       <ChatInput
@@ -217,35 +182,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-  },
-
-  messagesList: {
-    padding: 16,
-  },
-  messageContainer: {
-    maxWidth: '80%',
-    padding: 12,
-    borderRadius: 16,
-    marginBottom: 8,
-  },
-  senderMessage: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#007AFF',
-    borderBottomRightRadius: 4,
-  },
-  receiverMessage: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#E8E8E8',
-    borderBottomLeftRadius: 4,
-  },
-  messageText: {
-    fontSize: 16,
-    lineHeight: 20,
-  },
-  timeText: {
-    fontSize: 12,
-    marginTop: 4,
-    alignSelf: 'flex-end',
   },
 });
 
