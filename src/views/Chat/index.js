@@ -174,8 +174,6 @@ const Chat = () => {
       name: imageData.name || 'image.jpg', // Fallback name
     });
 
-    const url = Platform.OS === 'android' ? ANDROID_API_URL : IOS_API_URL;
-
     try {
       // Using the correct API endpoint format
       const response = await axios.post(
@@ -248,7 +246,7 @@ const Chat = () => {
         message={message}
         setMessage={setMessage}
         sendMessage={sendMessage}
-        handleImageSend={handleImageSend}
+        onImageSelect={handleImageSend}
       />
     </SafeAreaView>
   );
