@@ -1,8 +1,11 @@
-import {View, Text, StyleSheet} from 'react-native';
+import {View, Text, StyleSheet, ImageBackground, StatusBar} from 'react-native';
 import React, {useEffect} from 'react';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import {useNavigation} from '@react-navigation/native';
+
 import {selectedUser} from '../../redux/auth/authSlice';
 import useTypedSelector from '../../hooks/useTypedSelector';
-import {useNavigation} from '@react-navigation/native';
+import images from '../../constants/image';
 
 const Splash = () => {
   const navigation = useNavigation();
@@ -22,22 +25,68 @@ const Splash = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Chat App</Text>
-    </View>
+    <>
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="light-content"
+      />
+      <ImageBackground
+        source={images.AuthBG}
+        style={styles.background}
+        resizeMode="cover">
+        <View style={styles.overlay}>
+          <View style={styles.container}>
+            <View style={styles.iconContainer}>
+              <MaterialCommunityIcons
+                name="message-text-outline"
+                size={75}
+                color="#FFFFFF"
+              />
+            </View>
+            <Text style={styles.appName}>ChatApp</Text>
+            <Text style={styles.tagline}>Connect • Chat • Share</Text>
+          </View>
+        </View>
+      </ImageBackground>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    paddingHorizontal: 40,
   },
-  text: {
-    fontSize: 24,
+  iconContainer: {
+    width: 120,
+    height: 120,
+    backgroundColor: 'rgba(255,255,255,0.1)', // Subtle background for icon
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  appName: {
+    fontSize: 32,
     fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  tagline: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    opacity: 0.9,
+    letterSpacing: 1,
   },
 });
 
