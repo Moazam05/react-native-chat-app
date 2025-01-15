@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   StatusBar,
   Dimensions,
   ScrollView,
+  ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import {useDispatch} from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -40,8 +42,10 @@ const LoginScreen = () => {
   const navigation = useNavigation();
 
   const [showPassword, setShowPassword] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
-  const [loginUser] = useLoginMutation();
+  // todo: LOGIN API MUTATION
+  const [loginUser, {isLoading}] = useLoginMutation();
 
   const handleLogin = async (values, {setSubmitting}) => {
     try {
@@ -69,6 +73,27 @@ const LoginScreen = () => {
     }
   };
 
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => {
+        setIsKeyboardVisible(true);
+      },
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setIsKeyboardVisible(false);
+      },
+    );
+
+    // Cleanup listeners on component unmount
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+
   return (
     <ImageBackground
       source={images.AuthBG}
@@ -89,7 +114,9 @@ const LoginScreen = () => {
           style={[
             styles.innerContainer,
             {
-              marginTop: OneFourthHeight,
+              marginTop: isKeyboardVisible
+                ? OneFourthHeight / 2
+                : OneFourthHeight,
             },
           ]}>
           <Text style={styles.title}>Log In</Text>
@@ -167,7 +194,9 @@ const LoginScreen = () => {
                   style={styles.button}
                   onPress={handleSubmit}
                   disabled={isSubmitting}>
-                  <Text style={styles.buttonText}>Login</Text>
+                  <Text style={styles.buttonText}>
+                    {isLoading ? <ActivityIndicator color="#fff" /> : 'Log In'}
+                  </Text>
                 </TouchableOpacity>
 
                 <View style={styles.signupContainer}>
