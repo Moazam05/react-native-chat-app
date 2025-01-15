@@ -10,7 +10,17 @@ export const chatApiSlice = apiSlice.injectEndpoints({
         };
       },
     }),
+
+    getUserAllChats: builder.query({
+      query: () => {
+        return {
+          url: 'chats/user-chats',
+          method: 'GET',
+        };
+      },
+    }),
   }),
 });
 
-export const {useGetMessageByChatIdQuery} = chatApiSlice;
+export const {useGetMessageByChatIdQuery, useGetUserAllChatsQuery} =
+  chatApiSlice;
