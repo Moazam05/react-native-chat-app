@@ -1,35 +1,58 @@
-import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, Platform} from 'react-native';
 import React from 'react';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 
 const BottomNav = () => {
   const navigation = useNavigation();
+  const route = useRoute();
+  const currentRoute = route.name;
+
+  const isHomeActive = currentRoute === 'Home';
+  const isChatActive = currentRoute === 'ChatList';
 
   return (
-    <View style={styles.bottomNav}>
+    <View style={styles.container}>
       <TouchableOpacity
         style={styles.navItem}
         onPress={() => navigation.navigate('Home')}>
-        <Icon name="account-multiple" size={24} color="#FF9F0A" />
-        <Text style={[styles.navText, styles.activeNavText]}>Contacts</Text>
+        <Icon
+          name="account-multiple"
+          size={24}
+          color={isHomeActive ? '#FF9F0A' : '#666'}
+        />
+        <Text style={[styles.navText, isHomeActive && styles.activeNavText]}>
+          Contacts
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.navItem}
         onPress={() => navigation.navigate('ChatList')}>
-        <Icon name="message-outline" size={24} color="#666" />
-        <Text style={styles.navText}>Chats</Text>
+        <Icon
+          name="message-outline"
+          size={24}
+          color={isChatActive ? '#FF9F0A' : '#666'}
+        />
+        <Text style={[styles.navText, isChatActive && styles.activeNavText]}>
+          Chats
+        </Text>
       </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  bottomNav: {
+  container: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
     flexDirection: 'row',
     borderTopWidth: 1,
     borderTopColor: '#eee',
-    paddingVertical: 8,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 8, // Add padding for iOS safe area
+    paddingTop: 5,
   },
   navItem: {
     flex: 1,
