@@ -2,6 +2,8 @@ import {ANDROID_SOCKET_URL, IOS_SOCKET_URL} from '@env';
 import {Platform} from 'react-native';
 import io from 'socket.io-client';
 
+console.log('ANDROID_SOCKET_URL:', ANDROID_SOCKET_URL);
+
 let socket;
 
 export const initiateSocket = user => {

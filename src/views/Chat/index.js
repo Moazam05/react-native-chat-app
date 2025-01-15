@@ -14,6 +14,8 @@ import ChatHeader from './components/ChatHeader';
 import ChatInput from './components/ChatInput';
 import ChatMessages from './components/ChatMessages';
 
+console.log('ANDROID_API_URL:', ANDROID_API_URL);
+
 const Chat = () => {
   const route = useRoute();
   const {userId} = route.params;
