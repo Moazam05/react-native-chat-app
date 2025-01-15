@@ -6,115 +6,158 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
-  ActivityIndicator,
+  ImageBackground,
 } from 'react-native';
 import {useDispatch} from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
+import {Formik} from 'formik';
+import * as Yup from 'yup';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import {useLoginMutation} from '../../redux/api/authApiSlice';
 import {setUser} from '../../redux/auth/authSlice';
+import images from '../../constants/image';
+
+const LoginSchema = Yup.object().shape({
+  email: Yup.string()
+    .email('Invalid email address')
+    .required('Email is required'),
+  password: Yup.string()
+    .min(6, 'Password must be at least 6 characters')
+    .required('Password is required'),
+});
 
 const LoginScreen = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginUser] = useLoginMutation();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  // Login Api Bind
-  const [loginUser, {isLoading}] = useLoginMutation();
-
-  const handleLogin = async () => {
-    if (!email || !password) {
-      alert('Please fill all fields');
-      return;
-    }
-
+  const handleLogin = async (values, {setSubmitting}) => {
     try {
-      const payload = {
-        email: email,
-        password: password,
-      };
-
-      const user = await loginUser(payload);
+      const user = await loginUser(values);
 
       if (user?.data?.status) {
         dispatch(setUser(user?.data));
         await AsyncStorage.setItem('user', JSON.stringify(user?.data));
-
         navigation.navigate('Home');
       }
       if (user?.error) {
-        // setToast({
-        //   ...toast,
-        //   message: user?.error?.data?.message,
-        //   appearence: true,
-        //   type: 'error',
-        // });
+        alert(user?.error?.data?.message || 'Login failed');
       }
     } catch (error) {
       console.error('Login Error:', error);
-      //   setToast({
-      //     ...toast,
-      //     message: 'Something went wrong',
-      //     appearence: true,
-      //     type: 'error',
-      //   });
+      alert('Something went wrong');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.innerContainer}>
-        <Text style={styles.title}>Login</Text>
+    <ImageBackground source={images.AuthBG} style={styles.background}>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.innerContainer}>
+          <Text style={styles.title}>Log In</Text>
 
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+          <Formik
+            initialValues={{email: '', password: ''}}
+            validationSchema={LoginSchema}
+            onSubmit={handleLogin}>
+            {({
+              handleChange,
+              handleBlur,
+              handleSubmit,
+              values,
+              errors,
+              touched,
+              isSubmitting,
+            }) => (
+              <View style={styles.formContainer}>
+                <View style={styles.inputWrapper}>
+                  <Icon
+                    name="email-outline"
+                    size={20}
+                    color="#666"
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email"
+                    value={values.email}
+                    onChangeText={handleChange('email')}
+                    onBlur={handleBlur('email')}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+                {touched.email && errors.email && (
+                  <Text style={styles.errorText}>{errors.email}</Text>
+                )}
 
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+                <View style={styles.inputWrapper}>
+                  <Icon
+                    name="lock-outline"
+                    size={20}
+                    color="#666"
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    value={values.password}
+                    onChangeText={handleChange('password')}
+                    onBlur={handleBlur('password')}
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.passwordIcon}>
+                    <Icon
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={20}
+                      color="#666"
+                    />
+                  </TouchableOpacity>
+                </View>
+                {touched.password && errors.password && (
+                  <Text style={styles.errorText}>{errors.password}</Text>
+                )}
 
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleLogin}
-            disabled={isLoading}>
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Login</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('ForgotPassword')}>
+                  <Text style={styles.forgotPassword}>Forgot password</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={handleSubmit}
+                  disabled={isSubmitting}>
+                  <Text style={styles.buttonText}>Login</Text>
+                </TouchableOpacity>
+
+                <View style={styles.signupContainer}>
+                  <Text style={styles.signupText}>Don't have an account? </Text>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('Register')}>
+                    <Text style={styles.signupLink}>Sign up here</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Register')}
-            style={styles.linkContainer}>
-            <Text style={styles.linkText}>
-              Don't have an account? Sign up here
-            </Text>
-          </TouchableOpacity>
+          </Formik>
         </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   innerContainer: {
     flex: 1,
@@ -122,40 +165,66 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 30,
-    textAlign: 'center',
+    color: '#000',
+    marginBottom: 40,
   },
-  inputContainer: {
-    gap: 15,
+  formContainer: {
+    gap: 16,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F6FA',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+  },
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 15,
-    borderRadius: 8,
+    flex: 1,
+    paddingVertical: 15,
     fontSize: 16,
+    color: '#000',
+  },
+  passwordIcon: {
+    padding: 10,
+  },
+  errorText: {
+    color: '#FF4B55',
+    fontSize: 12,
+    marginTop: -8,
+  },
+  forgotPassword: {
+    color: '#FF9F0A',
+    textAlign: 'right',
+    fontSize: 14,
   },
   button: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: '#FF9F0A',
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 20,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
-  linkContainer: {
+  signupContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     marginTop: 20,
-    alignItems: 'center',
   },
-  linkText: {
-    color: '#007AFF',
+  signupText: {
+    color: '#000',
+    fontSize: 14,
+  },
+  signupLink: {
+    color: '#FF9F0A',
     fontSize: 14,
   },
 });
