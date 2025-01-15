@@ -7,11 +7,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {initiateSocket, getSocket} from '../../socket';
 import {useGetAllUsersQuery} from '../../redux/api/userApiSlice';
 import useTypedSelector from '../../hooks/useTypedSelector';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {selectedUser} from '../../redux/auth/authSlice';
 
 const Home = () => {
@@ -66,32 +68,26 @@ const Home = () => {
   };
 
   const renderUser = ({item}) => {
-    // Don't show current user in the list
-    if (item._id === currentUser?.data?.user?._id) return null;
-
+    if (item._id === currentUser?.data?.user?._id) {
+      return null;
+    }
     const isOnline = onlineUsers.has(item._id) || item.isOnline;
 
     return (
       <TouchableOpacity
         style={styles.userCard}
         onPress={() => handleUserPress(item._id)}>
-        <Image source={{uri: item.avatar}} style={styles.avatar} />
+        <View style={styles.avatarContainer}>
+          <Image source={{uri: item.avatar}} style={styles.avatar} />
+          {isOnline && <View style={styles.onlineIndicator} />}
+        </View>
         <View style={styles.userInfo}>
           <Text style={styles.username}>{item.username}</Text>
-          <Text style={styles.email}>{item.email}</Text>
+          <Text style={styles.lastSeen}>last seen recently</Text>
         </View>
-        <View style={styles.statusIndicator}>
-          <View
-            style={[
-              styles.onlineStatus,
-              {backgroundColor: isOnline ? '#4CAF50' : '#bbb'},
-            ]}
-          />
-          <Text
-            style={[styles.statusText, {color: isOnline ? '#4CAF50' : '#666'}]}>
-            {isOnline ? 'Online' : 'Offline'}
-          </Text>
-        </View>
+        <TouchableOpacity style={styles.messageButton}>
+          <Text style={styles.messageText}>Message</Text>
+        </TouchableOpacity>
       </TouchableOpacity>
     );
   };
@@ -105,100 +101,132 @@ const Home = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Chats</Text>
+        <Text style={styles.title}>Contacts</Text>
+        <View style={styles.headerRight}>
+          <TouchableOpacity>
+            <Icon name="plus" size={24} color="#000" />
+          </TouchableOpacity>
+          <Image
+            source={{uri: currentUser?.data?.user?.avatar}}
+            style={styles.profilePic}
+          />
+        </View>
       </View>
 
       <FlatList
         data={data?.users || []}
         renderItem={renderUser}
         keyExtractor={item => item._id}
-        contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={() => (
-          <View style={styles.centered}>
-            <Text style={styles.emptyText}>No users found</Text>
-          </View>
-        )}
+        showsVerticalScrollIndicator={false}
       />
-    </View>
+
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem}>
+          <Icon name="account-multiple" size={24} color="#FF9F0A" />
+          <Text style={[styles.navText, styles.activeNavText]}>Contacts</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Icon name="message-outline" size={24} color="#666" />
+          <Text style={styles.navText}>Chats</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 16,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#eee',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
   },
-  listContainer: {
-    padding: 16,
+  profilePic: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    paddingHorizontal: 16,
+  },
+  avatarContainer: {
+    position: 'relative',
   },
   avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  onlineIndicator: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#4CAF50',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   userInfo: {
     flex: 1,
+    marginLeft: 12,
   },
   username: {
     fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontWeight: '500',
   },
-  email: {
+  lastSeen: {
     fontSize: 14,
     color: '#666',
+    marginTop: 2,
   },
-  statusIndicator: {
+  messageButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  messageText: {
+    color: '#FF9F0A',
+    fontSize: 16,
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingVertical: 8,
+  },
+  navItem: {
+    flex: 1,
     alignItems: 'center',
     padding: 8,
   },
-  onlineStatus: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginBottom: 4,
-  },
-  statusText: {
+  navText: {
     fontSize: 12,
-    textAlign: 'center',
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
     color: '#666',
+    marginTop: 4,
+  },
+  activeNavText: {
+    color: '#FF9F0A',
   },
 });
 
