@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   SafeAreaView,
+  StatusBar,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {initiateSocket, getSocket} from '../../socket';
@@ -15,6 +16,7 @@ import {useGetAllUsersQuery} from '../../redux/api/userApiSlice';
 import useTypedSelector from '../../hooks/useTypedSelector';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {selectedUser} from '../../redux/auth/authSlice';
+import HomeHeader from './components/HomeHeader';
 
 const Home = () => {
   const navigation = useNavigation();
@@ -100,20 +102,20 @@ const Home = () => {
     );
   }
 
+  const handleAddPress = () => {};
+
+  const handleAvatarPress = () => {};
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Contacts</Text>
-        <View style={styles.headerRight}>
-          <TouchableOpacity>
-            <Icon name="plus" size={24} color="#000" />
-          </TouchableOpacity>
-          <Image
-            source={{uri: currentUser?.data?.user?.avatar}}
-            style={styles.profilePic}
-          />
-        </View>
-      </View>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+      <HomeHeader
+        title="Contacts"
+        avatarUrl={currentUser?.data?.user?.avatar}
+        onAddPress={handleAddPress}
+        onAvatarPress={handleAvatarPress}
+      />
 
       <FlatList
         data={data?.users || []}
@@ -141,28 +143,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  profilePic: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-  },
+
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
