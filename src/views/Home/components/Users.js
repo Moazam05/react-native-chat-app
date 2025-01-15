@@ -32,7 +32,9 @@ const Users = ({data, handleUserPress, onlineUsers}) => {
           <Text style={styles.username}>{item.username}</Text>
           <Text style={styles.lastSeen}>{item.email}</Text>
         </View>
-        <TouchableOpacity style={styles.messageButton}>
+        <TouchableOpacity
+          style={styles.messageButton}
+          onPress={() => handleUserPress(item._id)}>
           <Text style={styles.messageText}>Message</Text>
         </TouchableOpacity>
       </TouchableOpacity>
