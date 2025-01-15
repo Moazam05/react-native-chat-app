@@ -7,13 +7,14 @@ import {
   StatusBar,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+
 import {initiateSocket, getSocket} from '../../socket';
 import {useGetAllUsersQuery} from '../../redux/api/userApiSlice';
 import useTypedSelector from '../../hooks/useTypedSelector';
 import {selectedUser} from '../../redux/auth/authSlice';
 import HomeHeader from './components/HomeHeader';
-import HomeNav from './components/HomeNav';
 import Users from './components/Users';
+import BottomNav from '../../components/BottomNav';
 
 const Home = () => {
   const navigation = useNavigation();
@@ -102,8 +103,8 @@ const Home = () => {
         onlineUsers={onlineUsers}
       />
 
-      {/* Nav */}
-      <HomeNav />
+      {/* BottomNav */}
+      <BottomNav />
     </SafeAreaView>
   );
 };

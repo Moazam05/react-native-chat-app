@@ -1,12 +1,22 @@
-import {View, Text} from 'react-native';
+import {View, Text, SafeAreaView, StyleSheet} from 'react-native';
 import React from 'react';
+import BottomNav from '../../components/BottomNav';
 
 const ChatList = () => {
   return (
-    <View>
+    <SafeAreaView style={styles.container}>
       <Text>ChatList</Text>
-    </View>
+
+      {/* BottomNav */}
+      <BottomNav />
+    </SafeAreaView>
   );
 };
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+});
 export default ChatList;
