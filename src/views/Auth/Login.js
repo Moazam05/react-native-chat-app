@@ -7,6 +7,7 @@ import {
   StyleSheet,
   SafeAreaView,
   ImageBackground,
+  StatusBar,
 } from 'react-native';
 import {useDispatch} from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -56,6 +57,11 @@ const LoginScreen = () => {
 
   return (
     <ImageBackground source={images.AuthBG} style={styles.background}>
+      <StatusBar
+        barStyle="light-content"
+        translucent
+        backgroundColor="transparent"
+      />
       <SafeAreaView style={styles.container}>
         <View style={styles.innerContainer}>
           <Text style={styles.title}>Log In</Text>
