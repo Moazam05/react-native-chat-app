@@ -21,6 +21,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useLoginMutation} from '../../redux/api/authApiSlice';
 import {setUser} from '../../redux/auth/authSlice';
 import images from '../../constants/image';
+import Toast from 'react-native-toast-message';
 
 const LoginSchema = Yup.object().shape({
   email: Yup.string()
@@ -52,11 +53,17 @@ const LoginScreen = () => {
         navigation.navigate('Home');
       }
       if (user?.error) {
-        alert(user?.error?.data?.message || 'Login failed');
+        Toast.show({
+          type: 'error',
+          text2: user?.error?.data?.message || 'Login failed',
+        });
       }
     } catch (error) {
       console.error('Login Error:', error);
-      alert('Something went wrong');
+      Toast.show({
+        type: 'error',
+        text2: 'Something went wrong',
+      });
     } finally {
       setSubmitting(false);
     }
@@ -189,7 +196,6 @@ const styles = StyleSheet.create({
   innerContainer: {
     flex: 1,
     padding: 20,
-    // justifyContent: 'center',
   },
   title: {
     fontSize: 32,
@@ -217,12 +223,12 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   passwordIcon: {
-    padding: 10,
+    padding: 3,
   },
   errorText: {
     color: '#FF4B55',
     fontSize: 12,
-    marginTop: -8,
+    marginTop: -12,
   },
   forgotPassword: {
     color: '#FF9F0A',
