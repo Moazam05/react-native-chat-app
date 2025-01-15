@@ -8,6 +8,8 @@ import {
   SafeAreaView,
   ImageBackground,
   StatusBar,
+  Dimensions,
+  ScrollView,
 } from 'react-native';
 import {useDispatch} from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,10 +31,15 @@ const LoginSchema = Yup.object().shape({
     .required('Password is required'),
 });
 
+const height = Dimensions.get('window').height;
+const OneFourthHeight = height / 4;
+
 const LoginScreen = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
+
   const [showPassword, setShowPassword] = useState(false);
+
   const [loginUser] = useLoginMutation();
 
   const handleLogin = async (values, {setSubmitting}) => {
@@ -56,14 +63,28 @@ const LoginScreen = () => {
   };
 
   return (
-    <ImageBackground source={images.AuthBG} style={styles.background}>
+    <ImageBackground
+      source={images.AuthBG}
+      style={[
+        styles.background,
+        {
+          height: height + OneFourthHeight,
+        },
+      ]}>
       <StatusBar
         barStyle="light-content"
         translucent
         backgroundColor="transparent"
       />
       <SafeAreaView style={styles.container}>
-        <View style={styles.innerContainer}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={[
+            styles.innerContainer,
+            {
+              marginTop: OneFourthHeight,
+            },
+          ]}>
           <Text style={styles.title}>Log In</Text>
 
           <Formik
@@ -152,7 +173,7 @@ const LoginScreen = () => {
               </View>
             )}
           </Formik>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </ImageBackground>
   );
@@ -168,7 +189,7 @@ const styles = StyleSheet.create({
   innerContainer: {
     flex: 1,
     padding: 20,
-    justifyContent: 'center',
+    // justifyContent: 'center',
   },
   title: {
     fontSize: 32,
