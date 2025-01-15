@@ -30,7 +30,7 @@ const Users = ({data, handleUserPress, onlineUsers}) => {
         </View>
         <View style={styles.userInfo}>
           <Text style={styles.username}>{item.username}</Text>
-          <Text style={styles.lastSeen}>last seen recently</Text>
+          <Text style={styles.lastSeen}>{item.email}</Text>
         </View>
         <TouchableOpacity style={styles.messageButton}>
           <Text style={styles.messageText}>Message</Text>
@@ -53,8 +53,8 @@ const styles = StyleSheet.create({
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    paddingHorizontal: 16,
+    padding: 10,
+    paddingHorizontal: 12,
     borderBottomColor: '#eee',
     borderBottomWidth: 1,
   },
@@ -62,18 +62,18 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   avatar: {
-    width: 56,
-    height: 56,
+    width: 46,
+    height: 46,
     borderRadius: 28,
   },
   onlineIndicator: {
     position: 'absolute',
+    top: 0,
     right: 0,
-    bottom: 0,
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#22C55E',
     borderWidth: 2,
     borderColor: '#fff',
   },
@@ -86,17 +86,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   lastSeen: {
-    fontSize: 14,
+    fontSize: 11,
     color: '#666',
     marginTop: 2,
   },
   messageButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    padding: 8,
   },
   messageText: {
     color: '#FF9F0A',
-    fontSize: 16,
+    fontSize: 12,
+    fontWeight: '500',
   },
 });
 
