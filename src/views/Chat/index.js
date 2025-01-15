@@ -17,14 +17,14 @@ import {formatLastSeen} from '../../utils';
 
 const ChatList = () => {
   const navigation = useNavigation();
+
+  // todo: GET USER ALL CHATS API
   const {data, isLoading} = useGetUserAllChatsQuery({});
 
   const renderChat = ({item}) => {
     const otherUser = item.users[0];
     const isOnline = otherUser.isOnline;
     const lastMessage = item.latestMessage;
-
-    console.log('otherUser', otherUser);
 
     const handleChatPress = () => {
       navigation.navigate('Chat', {userId: otherUser._id});
@@ -45,13 +45,17 @@ const ChatList = () => {
           </View>
           <View style={styles.bottomRow}>
             {lastMessage ? (
-              <Text
-                style={styles.lastMessage}
-                numberOfLines={1}
-                ellipsizeMode="tail">
-                {lastMessage.sender.username === otherUser.username
-                  ? lastMessage.content
-                  : `You: ${lastMessage.content}`}
+              <Text numberOfLines={1} ellipsizeMode="tail">
+                {lastMessage.sender.username === otherUser.username ? (
+                  <Text style={styles.lastMessage}>{lastMessage.content}</Text>
+                ) : (
+                  <>
+                    <Text style={styles.youText}>You: </Text>
+                    <Text style={styles.lastMessage}>
+                      {lastMessage.content}
+                    </Text>
+                  </>
+                )}
               </Text>
             ) : (
               <Text style={styles.noMessage}>No messages yet</Text>
@@ -170,6 +174,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     flex: 1,
+  },
+  youText: {
+    fontSize: 12,
+    color: '#FF9F0A',
+    fontWeight: '500',
   },
   noMessage: {
     fontSize: 14,
