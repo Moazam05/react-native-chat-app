@@ -17,6 +17,7 @@ import useTypedSelector from '../../hooks/useTypedSelector';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {selectedUser} from '../../redux/auth/authSlice';
 import HomeHeader from './components/HomeHeader';
+import HomeNav from './components/HomeNav';
 
 const Home = () => {
   const navigation = useNavigation();
@@ -124,16 +125,7 @@ const Home = () => {
         showsVerticalScrollIndicator={false}
       />
 
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
-          <Icon name="account-multiple" size={24} color="#FF9F0A" />
-          <Text style={[styles.navText, styles.activeNavText]}>Contacts</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Icon name="message-outline" size={24} color="#666" />
-          <Text style={styles.navText}>Chats</Text>
-        </TouchableOpacity>
-      </View>
+      <HomeNav />
     </SafeAreaView>
   );
 };
@@ -149,6 +141,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     paddingHorizontal: 16,
+    borderBottomColor: '#eee',
+    borderBottomWidth: 1,
   },
   avatarContainer: {
     position: 'relative',
@@ -189,25 +183,6 @@ const styles = StyleSheet.create({
   messageText: {
     color: '#FF9F0A',
     fontSize: 16,
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingVertical: 8,
-  },
-  navItem: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 8,
-  },
-  navText: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  activeNavText: {
-    color: '#FF9F0A',
   },
 });
 
