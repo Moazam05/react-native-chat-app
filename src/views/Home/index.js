@@ -1,10 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {
   View,
-  Text,
-  FlatList,
-  Image,
-  TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   SafeAreaView,
@@ -14,15 +10,19 @@ import {useNavigation} from '@react-navigation/native';
 import {initiateSocket, getSocket} from '../../socket';
 import {useGetAllUsersQuery} from '../../redux/api/userApiSlice';
 import useTypedSelector from '../../hooks/useTypedSelector';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {selectedUser} from '../../redux/auth/authSlice';
 import HomeHeader from './components/HomeHeader';
 import HomeNav from './components/HomeNav';
+import Users from './components/Users';
 
 const Home = () => {
   const navigation = useNavigation();
+
   const currentUser = useTypedSelector(selectedUser);
+
   const [onlineUsers, setOnlineUsers] = useState(new Set());
+
+  // todo: GET ALL USERS API CALL
   const {data, isLoading} = useGetAllUsersQuery({});
 
   useEffect(() => {
@@ -70,31 +70,6 @@ const Home = () => {
     navigation.navigate('Chat', {userId});
   };
 
-  const renderUser = ({item}) => {
-    if (item._id === currentUser?.data?.user?._id) {
-      return null;
-    }
-    const isOnline = onlineUsers.has(item._id) || item.isOnline;
-
-    return (
-      <TouchableOpacity
-        style={styles.userCard}
-        onPress={() => handleUserPress(item._id)}>
-        <View style={styles.avatarContainer}>
-          <Image source={{uri: item.avatar}} style={styles.avatar} />
-          {isOnline && <View style={styles.onlineIndicator} />}
-        </View>
-        <View style={styles.userInfo}>
-          <Text style={styles.username}>{item.username}</Text>
-          <Text style={styles.lastSeen}>last seen recently</Text>
-        </View>
-        <TouchableOpacity style={styles.messageButton}>
-          <Text style={styles.messageText}>Message</Text>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    );
-  };
-
   if (isLoading) {
     return (
       <View style={styles.centered}>
@@ -109,8 +84,10 @@ const Home = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* StatusBar */}
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
+      {/* Header */}
       <HomeHeader
         title="Contacts"
         avatarUrl={currentUser?.data?.user?.avatar}
@@ -118,13 +95,14 @@ const Home = () => {
         onAvatarPress={handleAvatarPress}
       />
 
-      <FlatList
+      {/* Users */}
+      <Users
         data={data?.users || []}
-        renderItem={renderUser}
-        keyExtractor={item => item._id}
-        showsVerticalScrollIndicator={false}
+        handleUserPress={handleUserPress}
+        onlineUsers={onlineUsers}
       />
 
+      {/* Nav */}
       <HomeNav />
     </SafeAreaView>
   );
@@ -134,55 +112,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-
-  userCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    paddingHorizontal: 16,
-    borderBottomColor: '#eee',
-    borderBottomWidth: 1,
-  },
-  avatarContainer: {
-    position: 'relative',
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  onlineIndicator: {
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#4CAF50',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  userInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  username: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  lastSeen: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
-  },
-  messageButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  messageText: {
-    color: '#FF9F0A',
-    fontSize: 16,
   },
 });
 
