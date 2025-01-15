@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -19,13 +19,16 @@ import {useNavigation} from '@react-navigation/native';
 import {Formik} from 'formik';
 import * as Yup from 'yup';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-
-import {useLoginMutation} from '../../redux/api/authApiSlice';
-import {setUser} from '../../redux/auth/authSlice';
-import images from '../../constants/image';
 import Toast from 'react-native-toast-message';
 
-const LoginSchema = Yup.object().shape({
+import {useSignupMutation} from '../../redux/api/authApiSlice';
+import {setUser} from '../../redux/auth/authSlice';
+import images from '../../constants/image';
+
+const SignupSchema = Yup.object().shape({
+  username: Yup.string()
+    .min(3, 'Username must be at least 3 characters')
+    .required('Username is required'),
   email: Yup.string()
     .email('Invalid email address')
     .required('Email is required'),
@@ -37,33 +40,35 @@ const LoginSchema = Yup.object().shape({
 const height = Dimensions.get('window').height;
 const OneFourthHeight = height / 4;
 
-const Login = () => {
+const Signup = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
-
   const [showPassword, setShowPassword] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
-  // todo: LOGIN API MUTATION
-  const [loginUser, {isLoading}] = useLoginMutation();
+  // todo: SIGNUP API MUTATION
+  const [registerUser, {isLoading}] = useSignupMutation();
 
-  const handleLogin = async (values, {setSubmitting}) => {
+  const handleSignup = async (values, {setSubmitting}) => {
     try {
-      const user = await loginUser(values);
+      const user = await registerUser(values);
 
       if (user?.data?.status) {
-        dispatch(setUser(user?.data));
-        await AsyncStorage.setItem('user', JSON.stringify(user?.data));
-        navigation.navigate('Home');
+        Toast.show({
+          type: 'success',
+          text2: 'Registration successful',
+        });
+        setTimeout(() => {
+          navigation.navigate('Login');
+        }, 2000);
       }
       if (user?.error) {
         Toast.show({
           type: 'error',
-          text2: user?.error?.data?.message || 'Login failed',
+          text2: user?.error?.data?.message || 'Registration failed',
         });
       }
     } catch (error) {
-      console.error('Login Error:', error);
       Toast.show({
         type: 'error',
         text2: 'Something went wrong',
@@ -87,7 +92,6 @@ const Login = () => {
       },
     );
 
-    // Cleanup listeners on component unmount
     return () => {
       keyboardDidShowListener.remove();
       keyboardDidHideListener.remove();
@@ -97,12 +101,7 @@ const Login = () => {
   return (
     <ImageBackground
       source={images.AuthBG}
-      style={[
-        styles.background,
-        {
-          height: height + OneFourthHeight,
-        },
-      ]}>
+      style={[styles.background, {height: height + OneFourthHeight}]}>
       <StatusBar
         barStyle="light-content"
         translucent
@@ -119,12 +118,12 @@ const Login = () => {
                 : OneFourthHeight,
             },
           ]}>
-          <Text style={styles.title}>Log In</Text>
+          <Text style={styles.title}>Sign Up</Text>
 
           <Formik
-            initialValues={{email: '', password: ''}}
-            validationSchema={LoginSchema}
-            onSubmit={handleLogin}>
+            initialValues={{username: '', email: '', password: ''}}
+            validationSchema={SignupSchema}
+            onSubmit={handleSignup}>
             {({
               handleChange,
               handleBlur,
@@ -135,6 +134,26 @@ const Login = () => {
               isSubmitting,
             }) => (
               <View style={styles.formContainer}>
+                <View style={styles.inputWrapper}>
+                  <Icon
+                    name="account-outline"
+                    size={20}
+                    color="#666"
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Username"
+                    value={values.username}
+                    onChangeText={handleChange('username')}
+                    onBlur={handleBlur('username')}
+                    autoCapitalize="none"
+                  />
+                </View>
+                {touched.username && errors.username && (
+                  <Text style={styles.errorText}>{errors.username}</Text>
+                )}
+
                 <View style={styles.inputWrapper}>
                   <Icon
                     name="email-outline"
@@ -186,24 +205,21 @@ const Login = () => {
                 )}
 
                 <TouchableOpacity
-                  onPress={() => navigation.navigate('ForgotPassword')}>
-                  <Text style={styles.forgotPassword}>Forgot password</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
                   style={styles.button}
                   onPress={handleSubmit}
                   disabled={isSubmitting}>
                   <Text style={styles.buttonText}>
-                    {isLoading ? <ActivityIndicator color="#fff" /> : 'Log In'}
+                    {isLoading ? <ActivityIndicator color="#fff" /> : 'Sign Up'}
                   </Text>
                 </TouchableOpacity>
 
-                <View style={styles.signupContainer}>
-                  <Text style={styles.signupText}>Don't have an account? </Text>
+                <View style={styles.loginContainer}>
+                  <Text style={styles.loginText}>
+                    Already have an account?{' '}
+                  </Text>
                   <TouchableOpacity
-                    onPress={() => navigation.navigate('SignUp')}>
-                    <Text style={styles.signupLink}>Sign up here</Text>
+                    onPress={() => navigation.navigate('Login')}>
+                    <Text style={styles.loginLink}>Login here</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -259,11 +275,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: -12,
   },
-  forgotPassword: {
-    color: '#FF9F0A',
-    textAlign: 'right',
-    fontSize: 14,
-  },
+
   button: {
     backgroundColor: '#FF9F0A',
     padding: 16,
@@ -276,19 +288,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  signupContainer: {
+
+  loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 20,
   },
-  signupText: {
+  loginText: {
     color: '#000',
     fontSize: 14,
   },
-  signupLink: {
+  loginLink: {
     color: '#FF9F0A',
     fontSize: 14,
   },
 });
 
-export default Login;
+export default Signup;
