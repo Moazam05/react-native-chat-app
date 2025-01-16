@@ -1,58 +1,49 @@
+import React from 'react';
 import {
   View,
-  Text,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   TextInput,
   TouchableOpacity,
-  Alert,
+  StyleSheet,
+  Platform,
 } from 'react-native';
-import React from 'react';
-import {launchImageLibrary} from 'react-native-image-picker';
+import Icon from 'react-native-vector-icons/Ionicons';
+import * as ImagePicker from 'react-native-image-picker';
 import DocumentPicker from 'react-native-document-picker';
 
-const ChatInput = ({message, setMessage, sendMessage, onImageSelect}) => {
-  const handleImagePick = async () => {
+const ChatInput = ({message, onChangeText, onSend, onFileUpload, isTyping}) => {
+  const handleImageSelection = async () => {
     try {
-      const result = await launchImageLibrary({
+      const result = await ImagePicker.launchImageLibrary({
         mediaType: 'photo',
         quality: 0.8,
-        selectionLimit: 1,
       });
 
       if (!result.didCancel && result.assets?.[0]) {
-        const file = result.assets[0];
-        const fileData = {
-          uri: file.uri,
-          type: file.type || 'image/jpeg',
-          name: file.fileName || 'image.jpg',
-          size: file.fileSize,
-          messageType: 'image',
-        };
-        onImageSelect(fileData);
+        const asset = result.assets[0];
+        onFileUpload({
+          uri: asset.uri,
+          type: asset.type,
+          name: asset.fileName,
+        });
       }
     } catch (error) {
       console.error('Error picking image:', error);
     }
   };
 
-  const handleDocumentPick = async () => {
+  const handleDocumentSelection = async () => {
     try {
       const result = await DocumentPicker.pick({
         type: [DocumentPicker.types.pdf],
-        copyTo: 'cachesDirectory',
       });
 
-      const file = result[0];
-      const fileData = {
-        uri: file.fileCopyUri || file.uri,
-        type: file.type || 'application/pdf',
-        name: file.name || 'document.pdf',
-        size: file.size,
-        messageType: 'document',
-      };
-      onImageSelect(fileData);
+      if (result[0]) {
+        onFileUpload({
+          uri: result[0].uri,
+          type: result[0].type,
+          name: result[0].name,
+        });
+      }
     } catch (error) {
       if (!DocumentPicker.isCancel(error)) {
         console.error('Error picking document:', error);
@@ -60,118 +51,88 @@ const ChatInput = ({message, setMessage, sendMessage, onImageSelect}) => {
     }
   };
 
-  const showAttachmentOptions = () => {
-    Alert.alert(
-      'Select Attachment',
-      'Choose the type of file to attach',
-      [
-        {
-          text: 'Image',
-          onPress: handleImagePick,
-        },
-        {
-          text: 'PDF Document',
-          onPress: handleDocumentPick,
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-      ],
-      {cancelable: true},
-    );
-  };
-
-  const handleSend = () => {
-    if (message.trim()) {
-      sendMessage();
-    }
-  };
-
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <View style={styles.container}>
       <View style={styles.inputContainer}>
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            onPress={showAttachmentOptions}
-            style={styles.attachButton}>
-            <Text style={styles.attachButtonText}>+</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          onPress={handleImageSelection}
+          style={styles.iconButton}>
+          <Icon name="image-outline" size={24} color="#007AFF" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleDocumentSelection}
+          style={styles.iconButton}>
+          <Icon name="document-outline" size={24} color="#007AFF" />
+        </TouchableOpacity>
 
         <TextInput
-          style={styles.input}
           value={message}
-          onChangeText={setMessage}
+          onChangeText={onChangeText}
           placeholder="Type a message..."
+          placeholderTextColor="#999"
+          style={styles.input}
           multiline
           maxLength={1000}
-          placeholderTextColor="#666"
         />
 
         <TouchableOpacity
+          onPress={onSend}
           style={[
             styles.sendButton,
             !message.trim() && styles.sendButtonDisabled,
           ]}
-          onPress={handleSend}
           disabled={!message.trim()}>
-          <Text style={styles.sendButtonText}>Send</Text>
+          <Icon
+            name="send"
+            size={24}
+            color={message.trim() ? '#007AFF' : '#999'}
+          />
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    borderTopWidth: 1,
+    borderTopColor: '#e5e5e5',
+    backgroundColor: '#fff',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    ...Platform.select({
+      ios: {
+        paddingBottom: 30, // Additional padding for iOS devices
+      },
+    }),
+  },
   inputContainer: {
     flexDirection: 'row',
-    padding: 12,
-    backgroundColor: '#fff',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 24,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  actionButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  attachButton: {
-    padding: 8,
+  iconButton: {
+    padding: 4,
     marginRight: 8,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-  },
-  attachButtonText: {
-    fontSize: 24,
-    color: '#007AFF',
-    lineHeight: 24,
   },
   input: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 12,
-    maxHeight: 100,
     fontSize: 16,
+    maxHeight: 100,
     color: '#000',
+    padding: 0,
+    marginHorizontal: 8,
   },
   sendButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
+    padding: 4,
+    marginLeft: 8,
   },
   sendButtonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  sendButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
+    opacity: 0.5,
   },
 });
 

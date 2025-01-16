@@ -1,5 +1,5 @@
-import React, {useEffect, useState} from 'react';
-import {StyleSheet, SafeAreaView} from 'react-native';
+import React, {useEffect, useState, useCallback, useRef} from 'react';
+import {StyleSheet, SafeAreaView, View} from 'react-native';
 import {useRoute} from '@react-navigation/native';
 
 import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
@@ -10,6 +10,7 @@ import {
   useGetMessagesQuery,
   useCreateMessageMutation,
 } from '../../../redux/api/messageAPISlice';
+
 import ChatHeader from './ChatHeader';
 import ChatInput from './ChatInput';
 import ChatMessages from './ChatMessages';
@@ -18,126 +19,165 @@ const Chat = () => {
   const route = useRoute();
   const {userId, chatId} = route.params;
   const currentUser = useTypedSelector(selectedUser);
+  const socketRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
+  // State management
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [isUserOnline, setIsUserOnline] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [userTyping, setUserTyping] = useState(false);
 
-  // todo: GET ALL USERS API
-  const {data} = useGetAllUsersQuery({});
+  // RTK Query hooks
+  const {data: usersData} = useGetAllUsersQuery({});
+  const {data: messagesData, isLoading: messagesLoading} = useGetMessagesQuery(
+    {chatId},
+    {
+      refetchOnMountOrArgChange: true,
+    },
+  );
+  const [createMessage] = useCreateMessageMutation();
 
-  // todo: GET MESSAGES BY CHAT ID API
-  const {data: messagesData} = useGetMessagesQuery({chatId});
+  // Get chat user details
+  const chatUser = usersData?.users?.find(user => user._id === userId);
 
-  useEffect(() => {
-    if (messagesData?.data?.messages) {
-      setMessages(messagesData.data.messages);
-    }
-  }, [messagesData]);
-
-  useEffect(() => {
+  // Socket setup
+  const setupSocket = useCallback(() => {
     const socket = getSocket();
-    if (socket && userId) {
-      // Check initial online status from chatUser data
-      if (chatUser?.isOnline) {
-        setIsUserOnline(true);
-      }
+    if (socket) {
+      socketRef.current = socket;
 
-      // Set up online status listener
+      // Setup user and join chat
+      socket.emit('setup', currentUser.data.user);
+      socket.emit('join chat', chatId);
+
+      // Online status handling
       socket.on('user online', onlineUserId => {
-        // console.log('User online event:', onlineUserId, userId);
         if (onlineUserId === userId) {
           setIsUserOnline(true);
         }
       });
 
-      // Set up offline status listener
       socket.on('user offline', offlineUserId => {
-        // console.log('User offline event:', offlineUserId, userId);
         if (offlineUserId === userId) {
           setIsUserOnline(false);
         }
       });
 
-      // Initial check for online status
-      socket.emit('check online', userId);
-
-      // Message listener
+      // Message handling
       socket.on('message received', newMessage => {
-        if (newMessage.chatId === chatId) {
-          setMessages(prev => [newMessage, ...prev]);
+        if (
+          newMessage.chatId === chatId &&
+          newMessage.sender !== currentUser.data.user._id
+        ) {
+          setMessages(prev =>
+            [...prev, newMessage].sort(
+              (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+            ),
+          );
         }
       });
 
-      // Cleanup listeners
-      return () => {
-        socket.off('message received');
-        socket.off('user online');
-        socket.off('user offline');
-      };
+      // Typing indicators
+      socket.on('typing', () => setUserTyping(true));
+      socket.on('stop typing', () => setUserTyping(false));
+
+      // Initial online status check
+      socket.emit('check online', userId);
     }
-  }, [chatId, userId, chatUser?.isOnline]);
+  }, [chatId, userId, currentUser.data.user]);
 
-  // todo: Chat user
-  const chatUser = data?.users?.find(user => user._id === userId);
+  // Cleanup socket
+  const cleanupSocket = useCallback(() => {
+    if (socketRef.current) {
+      socketRef.current.off('message received');
+      socketRef.current.off('typing');
+      socketRef.current.off('stop typing');
+      socketRef.current.off('user online');
+      socketRef.current.off('user offline');
+    }
+  }, []);
 
+  // Initial socket setup and cleanup
   useEffect(() => {
-    if (currentUser.token) {
-      const socket = getSocket();
-      if (socket) {
-        // Join the chat rooms
-        socket.emit('join chat', chatId);
+    setupSocket();
+    return () => cleanupSocket();
+  }, [setupSocket, cleanupSocket]);
+
+  // Update messages when data changes
+  useEffect(() => {
+    if (messagesData?.data?.messages) {
+      setMessages(
+        messagesData.data.messages.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+        ),
+      );
+    }
+  }, [messagesData]);
+
+  // Typing handler with debounce
+  const handleTyping = useCallback(
+    text => {
+      setMessage(text);
+
+      if (socketRef.current) {
+        if (!isTyping) {
+          setIsTyping(true);
+          socketRef.current.emit('typing', chatId);
+        }
+
+        // Clear existing timeout
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+
+        // Set new timeout
+        typingTimeoutRef.current = setTimeout(() => {
+          if (socketRef.current && isTyping) {
+            socketRef.current.emit('stop typing', chatId);
+            setIsTyping(false);
+          }
+        }, 3000);
       }
-    }
-  }, [currentUser.token]);
+    },
+    [chatId, isTyping],
+  );
 
-  useEffect(() => {}, [chatId]);
-
-  // todo: Send message API Mutation
-  const [createMessage] = useCreateMessageMutation();
-
-  // In your Chat component:
+  // Send message handler
   const sendMessage = async () => {
-    if (!message.trim() || !chatId) {
-      return;
-    }
+    if (!message.trim() || !chatId) return;
 
-    const messageData = {
-      content: message.trim(),
-      messageType: 'text',
-    };
+    if (socketRef.current) {
+      socketRef.current.emit('stop typing', chatId);
+    }
 
     try {
       const response = await createMessage({
         chatId,
-        ...messageData,
+        content: message.trim(),
+        messageType: 'text',
       }).unwrap();
 
       if (response.status === 'success') {
         const newMessage = response.data.message;
 
-        // Emit through socket
-        const socket = getSocket();
-        if (socket) {
-          socket.emit('new message', {
-            ...newMessage,
-            sender: currentUser.data.user._id,
-          });
+        if (socketRef.current) {
+          socketRef.current.emit('new message', newMessage);
         }
 
-        // Update local messages
-        setMessages(prev => [newMessage, ...prev]);
         setMessage('');
+        setIsTyping(false);
       }
     } catch (error) {
-      console.error('Error details:', error);
+      console.error('Error sending message:', error);
+      // Handle error (show toast or alert)
     }
   };
 
+  // File upload handler
   const handleFileUpload = async fileData => {
-    if (!chatId) {
-      return;
-    }
+    if (!chatId) return;
 
     const isPDF = fileData.type === 'application/pdf';
 
@@ -155,37 +195,33 @@ const Chat = () => {
       if (response.status === 'success') {
         const newMessage = response.data.message;
 
-        // Emit socket event
-        const socket = getSocket();
-        if (socket) {
-          socket.emit('new message', {
-            ...newMessage,
-            sender: currentUser.data.user._id,
-          });
+        if (socketRef.current) {
+          socketRef.current.emit('new message', newMessage);
         }
-
-        // Update local messages
-        setMessages(prev => [newMessage, ...prev]);
       }
     } catch (error) {
-      console.error('Error details:', error);
+      console.error('Error uploading file:', error);
+      // Handle error (show toast or alert)
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <ChatHeader chatUser={chatUser} isUserOnline={isUserOnline} />
 
-      {/* Chat Messages */}
-      <ChatMessages messages={messages} currentUser={currentUser} />
+      <ChatMessages
+        messages={messages}
+        currentUser={currentUser}
+        isLoading={messagesLoading}
+        userTyping={userTyping}
+      />
 
-      {/* Input */}
       <ChatInput
         message={message}
-        setMessage={setMessage}
-        sendMessage={sendMessage}
-        onImageSelect={handleFileUpload}
+        onChangeText={handleTyping}
+        onSend={sendMessage}
+        onFileUpload={handleFileUpload}
+        isTyping={isTyping}
       />
     </SafeAreaView>
   );

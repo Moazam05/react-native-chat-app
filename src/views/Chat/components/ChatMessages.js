@@ -1,9 +1,140 @@
-import {StyleSheet, FlatList, View, Text, Image} from 'react-native';
-import React from 'react';
+import React, {useRef, useEffect} from 'react';
+import {
+  StyleSheet,
+  FlatList,
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  Linking,
+  ActivityIndicator,
+  Animated,
+} from 'react-native';
 
-const ChatMessages = ({messages, currentUser}) => {
+const TypingIndicator = () => {
+  // Create animated values for each dot
+  const dot1 = useRef(new Animated.Value(0)).current;
+  const dot2 = useRef(new Animated.Value(0)).current;
+  const dot3 = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animate = () => {
+      // Reset values
+      dot1.setValue(0);
+      dot2.setValue(0);
+      dot3.setValue(0);
+
+      // Create animation sequence
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(dot1, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.timing(dot2, {
+            toValue: 1,
+            duration: 400,
+            delay: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(dot3, {
+            toValue: 1,
+            duration: 400,
+            delay: 400,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start(() => animate());
+    };
+
+    animate();
+  }, []);
+
+  return (
+    <View style={styles.typingContainer}>
+      {[dot1, dot2, dot3].map((dot, index) => (
+        <Animated.View
+          key={index}
+          style={[
+            styles.typingDot,
+            {
+              transform: [
+                {
+                  translateY: dot.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0, -6, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+};
+
+const MessageTime = ({time, isSender}) => (
+  <Text style={[styles.timeText, {color: isSender ? '#fff' : '#666'}]}>
+    {new Date(time).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    })}
+  </Text>
+);
+
+const ChatMessages = ({
+  messages,
+  currentUser,
+  isTyping = false,
+  isLoading = false,
+  onImagePress,
+}) => {
+  const flatListRef = useRef(null);
+
   const renderMessage = ({item}) => {
     const isSender = item.sender._id === currentUser.data.user._id;
+
+    const renderContent = () => {
+      switch (item.messageType) {
+        case 'image':
+          return (
+            <TouchableOpacity
+              onPress={() => onImagePress?.(item.fileUrl)}
+              activeOpacity={0.8}>
+              <Image
+                source={{uri: item.fileUrl}}
+                style={styles.messageImage}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
+          );
+
+        case 'document':
+          return (
+            <TouchableOpacity
+              onPress={() => Linking.openURL(item.fileUrl)}
+              style={styles.documentContainer}>
+              <Text
+                style={[
+                  styles.documentText,
+                  {color: isSender ? '#fff' : '#000'},
+                ]}>
+                📄 {item.fileName || 'Document'}
+              </Text>
+            </TouchableOpacity>
+          );
+
+        default:
+          return (
+            <Text
+              style={[styles.messageText, {color: isSender ? '#fff' : '#000'}]}>
+              {item.content}
+            </Text>
+          );
+      }
+    };
 
     return (
       <View
@@ -11,32 +142,46 @@ const ChatMessages = ({messages, currentUser}) => {
           styles.messageContainer,
           isSender ? styles.senderMessage : styles.receiverMessage,
         ]}>
-        {item.messageType === 'image' && item.fileUrl ? (
-          <Image
-            source={{uri: item.fileUrl}}
-            style={styles.messageImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <Text
-            style={[styles.messageText, {color: isSender ? '#fff' : '#000'}]}>
-            {item.content}
-          </Text>
-        )}
-        <Text style={[styles.timeText, {color: isSender ? '#fff' : '#666'}]}>
-          {new Date(item.createdAt).toLocaleTimeString()}
-        </Text>
+        {renderContent()}
+        <MessageTime time={item.createdAt} isSender={isSender} />
       </View>
     );
   };
 
+  const renderFooter = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator color="#007AFF" />
+        </View>
+      );
+    }
+
+    if (isTyping) {
+      return (
+        <View style={[styles.messageContainer, styles.receiverMessage]}>
+          <TypingIndicator />
+        </View>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <FlatList
+      ref={flatListRef}
       data={messages}
       renderItem={renderMessage}
-      keyExtractor={(item, index) => index.toString()}
+      keyExtractor={item => item._id}
       contentContainerStyle={styles.messagesList}
       inverted
+      ListFooterComponent={renderFooter}
+      onContentSizeChange={() => {
+        if (messages.length > 0) {
+          flatListRef.current?.scrollToOffset({offset: 0, animated: true});
+        }
+      }}
     />
   );
 };
@@ -74,6 +219,30 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 8,
+  },
+  documentContainer: {
+    padding: 8,
+  },
+  documentText: {
+    fontSize: 14,
+    textDecorationLine: 'underline',
+  },
+  typingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  typingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#666',
+    marginHorizontal: 2,
+  },
+  loaderContainer: {
+    padding: 16,
+    alignItems: 'center',
   },
 });
 
