@@ -9,22 +9,69 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import React from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import BottomNav from '../../components/BottomNav';
 import {useGetChatQuery} from '../../redux/api/chatApiSlice';
 import {useNavigation} from '@react-navigation/native';
 import {formatLastSeen} from '../../utils';
+import {getSocket} from '../../socket';
 
 const ChatList = () => {
   const navigation = useNavigation();
+  const [chats, setChats] = useState([]);
+  const [unreadCounts, setUnreadCounts] = useState({}); // Store unread counts by chatId
+  const socketRef = useRef(null);
 
   // todo: GET USER ALL CHATS API
   const {data, isLoading} = useGetChatQuery({});
+
+  useEffect(() => {
+    if (data?.data?.chats) {
+      setChats(data.data.chats);
+    }
+  }, [data]);
+
+  // Socket setup
+  useEffect(() => {
+    const socket = getSocket();
+    if (socket) {
+      socketRef.current = socket;
+
+      // Listen for chat list updates
+      socket.on('chat list update', ({chatId, lastMessage, unreadCount}) => {
+        setChats(prevChats =>
+          prevChats.map(chat => {
+            if (chat._id === chatId) {
+              return {
+                ...chat,
+                latestMessage: lastMessage,
+                unreadCount: (chat.unreadCount || 0) + unreadCount,
+              };
+            }
+            return chat;
+          }),
+        );
+
+        // Update unread counts
+        setUnreadCounts(prev => ({
+          ...prev,
+          [chatId]: (prev[chatId] || 0) + unreadCount,
+        }));
+      });
+    }
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.off('chat list update');
+      }
+    };
+  }, []);
 
   const renderChat = ({item}) => {
     const otherUser = item.users[0];
     const isOnline = otherUser.isOnline;
     const lastMessage = item.latestMessage;
+    const unreadCount = unreadCounts[item._id] || 0;
 
     const handleChatPress = () => {
       navigation.navigate('Chat', {userId: otherUser._id, chatId: item._id});
@@ -40,23 +87,35 @@ const ChatList = () => {
           <View style={styles.topRow}>
             <Text style={styles.username}>{otherUser.username}</Text>
             <Text style={styles.timeStamp}>
-              {formatLastSeen(item?.latestMessage?.createdAt)}
+              {formatLastSeen(lastMessage?.createdAt)}
             </Text>
           </View>
           <View style={styles.bottomRow}>
             {lastMessage ? (
-              <Text numberOfLines={1} ellipsizeMode="tail">
-                {lastMessage.sender.username === otherUser.username ? (
-                  <Text style={styles.lastMessage}>{lastMessage.content}</Text>
-                ) : (
-                  <>
-                    <Text style={styles.youText}>You: </Text>
+              <>
+                <Text
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  style={styles.messageContainer}>
+                  {lastMessage.sender.username === otherUser.username ? (
                     <Text style={styles.lastMessage}>
                       {lastMessage.content}
                     </Text>
-                  </>
+                  ) : (
+                    <>
+                      <Text style={styles.youText}>You: </Text>
+                      <Text style={styles.lastMessage}>
+                        {lastMessage.content}
+                      </Text>
+                    </>
+                  )}
+                </Text>
+                {unreadCount > 0 && (
+                  <View style={styles.unreadBadge}>
+                    <Text style={styles.unreadCount}>{unreadCount}</Text>
+                  </View>
                 )}
-              </Text>
+              </>
             ) : (
               <Text style={styles.noMessage}>No messages yet</Text>
             )}
@@ -84,7 +143,7 @@ const ChatList = () => {
         </View>
       ) : (
         <FlatList
-          data={data?.data?.chats || []}
+          data={chats || []}
           renderItem={renderChat}
           keyExtractor={item => item._id}
           showsVerticalScrollIndicator={false}
@@ -197,6 +256,24 @@ const styles = StyleSheet.create({
   },
   bottomNavPadding: {
     height: Platform.OS === 'ios' ? 88 : 76,
+  },
+  unreadBadge: {
+    backgroundColor: '#FF9F0A',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+    paddingHorizontal: 8,
+  },
+  unreadCount: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  messageContainer: {
+    flex: 1,
   },
 });
 
