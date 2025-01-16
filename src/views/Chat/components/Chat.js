@@ -10,9 +10,9 @@ import {getSocket} from '../../../socket';
 import useTypedSelector from '../../../hooks/useTypedSelector';
 import {selectedUser} from '../../../redux/auth/authSlice';
 import {
-  useGetMessageByChatIdQuery,
-  useSendMessageMutation,
-} from '../../../redux/api/chatApiSlice';
+  useGetMessagesQuery,
+  useCreateMessageMutation,
+} from '../../../redux/api/messageAPISlice';
 import ChatHeader from './ChatHeader';
 import ChatInput from './ChatInput';
 import ChatMessages from './ChatMessages';
@@ -33,7 +33,7 @@ const Chat = () => {
   const {data} = useGetAllUsersQuery({});
 
   // todo: GET MESSAGES BY CHAT ID API
-  const {data: messagesData} = useGetMessageByChatIdQuery(
+  const {data: messagesData} = useGetMessagesQuery(
     chatId === skipToken ? skipToken : {chatId},
   );
 
@@ -126,7 +126,7 @@ const Chat = () => {
   }, [currentUser.token, userId]);
 
   // todo: Send message API Mutation
-  const [sendMessageMutation] = useSendMessageMutation();
+  const [createMessage] = useCreateMessageMutation();
 
   // In your Chat component:
   const sendMessage = async () => {
@@ -140,7 +140,7 @@ const Chat = () => {
     };
 
     try {
-      const response = await sendMessageMutation({
+      const response = await createMessage({
         chatId,
         ...messageData,
       }).unwrap();
@@ -174,7 +174,7 @@ const Chat = () => {
     const isPDF = fileData.type === 'application/pdf';
 
     try {
-      const response = await sendMessageMutation({
+      const response = await createMessage({
         chatId,
         messageType: isPDF ? 'document' : 'image',
         file: {

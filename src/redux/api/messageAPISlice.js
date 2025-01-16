@@ -30,11 +30,11 @@ export const messageApiSlice = apiSlice.injectEndpoints({
           body: messageData,
         };
       },
-      invalidatesTags: ['Message'],
+      invalidatesTags: ['Messages'],
     }),
 
     getMessages: builder.query({
-      query: chatId => {
+      query: ({chatId}) => {
         return {
           url: `messages/${chatId}`,
           method: 'GET',
