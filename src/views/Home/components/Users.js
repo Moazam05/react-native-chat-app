@@ -5,19 +5,64 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  ActivityIndicator,
 } from 'react-native';
-import React from 'react';
+import React, {useEffect, useState} from 'react';
+import {useNavigation} from '@react-navigation/native';
 
+import {getSocket} from '../../../socket';
+import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
 import useTypedSelector from '../../../hooks/useTypedSelector';
 import {selectedUser} from '../../../redux/auth/authSlice';
 
-const Users = ({data, handleUserPress, onlineUsers}) => {
+const Users = () => {
+  const navigation = useNavigation();
+
   const currentUser = useTypedSelector(selectedUser);
+
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+
+  // todo: Fetch all users
+  const {data, isLoading} = useGetAllUsersQuery({});
+
+  // Handle socket events for online status
+  useEffect(() => {
+    const socket = getSocket();
+    if (socket) {
+      socket.on('user online', userId => {
+        // console.log('User Online:', userId);
+        setOnlineUsers(prev => new Set([...prev, userId]));
+      });
+
+      socket.on('user offline', userId => {
+        // console.log('User Offline:', userId);
+        setOnlineUsers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(userId);
+          return newSet;
+        });
+      });
+
+      return () => {
+        socket.off('user online');
+        socket.off('user offline');
+      };
+    }
+  }, []);
+
+  const handleUserPress = userId => {
+    const socket = getSocket();
+    if (socket) {
+      socket.emit('join chat', userId);
+    }
+    navigation.navigate('Chat', {userId});
+  };
 
   const renderUser = ({item}) => {
     if (item._id === currentUser?.data?.user?._id) {
       return null;
     }
+
     const isOnline = onlineUsers.has(item._id) || item.isOnline;
 
     return (
@@ -41,9 +86,17 @@ const Users = ({data, handleUserPress, onlineUsers}) => {
     );
   };
 
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF9F0A" />
+      </View>
+    );
+  }
+
   return (
     <FlatList
-      data={data}
+      data={data?.users || []}
       renderItem={renderUser}
       keyExtractor={item => item._id}
       showsVerticalScrollIndicator={false}
@@ -52,6 +105,11 @@ const Users = ({data, handleUserPress, onlineUsers}) => {
 };
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
