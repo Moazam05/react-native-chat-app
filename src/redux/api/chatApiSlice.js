@@ -20,7 +20,7 @@ export const chatApiSlice = apiSlice.injectEndpoints({
           method: 'GET',
         };
       },
-      providesTags: ['Chats'],
+      providesTags: ['Chats', 'Messages'],
     }),
   }),
 });
