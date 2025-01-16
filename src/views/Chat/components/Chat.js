@@ -1,5 +1,5 @@
 import React, {useEffect, useState, useCallback, useRef} from 'react';
-import {StyleSheet, SafeAreaView, View} from 'react-native';
+import {StyleSheet, SafeAreaView} from 'react-native';
 import {useRoute} from '@react-navigation/native';
 
 import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
@@ -29,9 +29,6 @@ const Chat = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [userTyping, setUserTyping] = useState(false);
 
-  console.log('userTyping', userTyping);
-  console.log('isTyping', isTyping);
-
   // RTK Query hooks
   const {data: usersData} = useGetAllUsersQuery({});
   const {data: messagesData, isLoading: messagesLoading} = useGetMessagesQuery(
@@ -46,7 +43,7 @@ const Chat = () => {
   const chatUser = usersData?.users?.find(user => user._id === userId);
 
   // Socket setup
-  const setupSocket = useCallback(() => {
+  const setupSocket = () => {
     const socket = getSocket();
     if (socket) {
       socketRef.current = socket;
@@ -57,18 +54,26 @@ const Chat = () => {
 
       // Online status handling
       socket.on('user online', onlineUserId => {
+        console.log('Online event received for:', onlineUserId);
         if (onlineUserId === userId) {
           setIsUserOnline(true);
         }
       });
 
       socket.on('user offline', offlineUserId => {
+        console.log('Offline event received for:', offlineUserId);
         if (offlineUserId === userId) {
           setIsUserOnline(false);
         }
       });
 
-      // Message handling
+      // Add connected handler
+      socket.on('connected', () => {
+        console.log('Socket connected, checking status');
+        socket.emit('check user status', userId);
+      });
+
+      // Keep your existing message and typing handlers as they are
       socket.on('message received', newMessage => {
         if (
           newMessage.chatId === chatId &&
@@ -82,31 +87,31 @@ const Chat = () => {
         }
       });
 
-      // Typing indicators
       socket.on('typing', () => setUserTyping(true));
       socket.on('stop typing', () => setUserTyping(false));
 
-      // Initial online status check
-      socket.emit('check online', userId);
+      // Initial status check
+      socket.emit('check user status', userId);
     }
-  }, [chatId, userId, currentUser.data.user]);
+  };
 
   // Cleanup socket
-  const cleanupSocket = useCallback(() => {
+  const cleanupSocket = () => {
     if (socketRef.current) {
       socketRef.current.off('message received');
       socketRef.current.off('typing');
       socketRef.current.off('stop typing');
       socketRef.current.off('user online');
       socketRef.current.off('user offline');
+      socketRef.current.disconnect();
     }
-  }, []);
+  };
 
   // Initial socket setup and cleanup
   useEffect(() => {
     setupSocket();
     return () => cleanupSocket();
-  }, [setupSocket, cleanupSocket]);
+  }, []);
 
   // Update messages when data changes
   useEffect(() => {
@@ -120,32 +125,29 @@ const Chat = () => {
   }, [messagesData]);
 
   // Typing handler with debounce
-  const handleTyping = useCallback(
-    text => {
-      setMessage(text);
+  const handleTyping = text => {
+    setMessage(text);
 
-      if (socketRef.current) {
-        if (!isTyping) {
-          setIsTyping(true);
-          socketRef.current.emit('typing', chatId);
-        }
-
-        // Clear existing timeout
-        if (typingTimeoutRef.current) {
-          clearTimeout(typingTimeoutRef.current);
-        }
-
-        // Set new timeout
-        typingTimeoutRef.current = setTimeout(() => {
-          if (socketRef.current && isTyping) {
-            socketRef.current.emit('stop typing', chatId);
-            setIsTyping(false);
-          }
-        }, 3000);
+    if (socketRef.current) {
+      if (!isTyping) {
+        setIsTyping(true);
+        socketRef.current.emit('typing', chatId);
       }
-    },
-    [chatId, isTyping],
-  );
+
+      // Clear existing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      // Set new timeout
+      typingTimeoutRef.current = setTimeout(() => {
+        if (socketRef.current && isTyping) {
+          socketRef.current.emit('stop typing', chatId);
+          setIsTyping(false);
+        }
+      }, 3000);
+    }
+  };
 
   // Send message handler
   const sendMessage = async () => {

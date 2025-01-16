@@ -159,7 +159,7 @@ const ChatMessages = ({
 
     if (isReceiverTyping) {
       return (
-        <View style={[styles.messageContainer, styles.receiverMessage]}>
+        <View style={[styles.messageContainerTwo, styles.receiverMessage]}>
           <TypingIndicator />
         </View>
       );
@@ -195,6 +195,12 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 16,
     marginBottom: 8,
+  },
+  messageContainerTwo: {
+    maxWidth: '80%',
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 4,
   },
   senderMessage: {
     alignSelf: 'flex-end',
