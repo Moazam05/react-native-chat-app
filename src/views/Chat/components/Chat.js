@@ -112,7 +112,7 @@ const Chat = () => {
   useEffect(() => {
     if (messagesData?.data?.messages) {
       setMessages(
-        messagesData.data.messages.sort(
+        [...messagesData.data.messages].sort(
           (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
         ),
       );
@@ -220,7 +220,7 @@ const Chat = () => {
         messages={messages}
         currentUser={currentUser}
         isLoading={messagesLoading}
-        userTyping={userTyping}
+        isTyping={isTyping}
       />
 
       <ChatInput
@@ -228,7 +228,6 @@ const Chat = () => {
         onChangeText={handleTyping}
         onSend={sendMessage}
         onFileUpload={handleFileUpload}
-        isTyping={isTyping}
       />
     </SafeAreaView>
   );

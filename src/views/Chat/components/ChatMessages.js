@@ -87,11 +87,13 @@ const MessageTime = ({time, isSender}) => (
 const ChatMessages = ({
   messages,
   currentUser,
-  isTyping = false,
-  isLoading = false,
-  onImagePress,
+  isTyping,
+  isLoading,
+  // onImagePress,
 }) => {
   const flatListRef = useRef(null);
+
+  console.log('isTyping', isTyping);
 
   const renderMessage = ({item}) => {
     const isSender = item.sender._id === currentUser.data.user._id;
@@ -101,7 +103,7 @@ const ChatMessages = ({
         case 'image':
           return (
             <TouchableOpacity
-              onPress={() => onImagePress?.(item.fileUrl)}
+              // onPress={() => onImagePress?.(item.fileUrl)}
               activeOpacity={0.8}>
               <Image
                 source={{uri: item.fileUrl}}

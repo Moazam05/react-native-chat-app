@@ -10,7 +10,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import * as ImagePicker from 'react-native-image-picker';
 import DocumentPicker from 'react-native-document-picker';
 
-const ChatInput = ({message, onChangeText, onSend, onFileUpload, isTyping}) => {
+const ChatInput = ({message, onChangeText, onSend, onFileUpload}) => {
   const handleImageSelection = async () => {
     try {
       const result = await ImagePicker.launchImageLibrary({
