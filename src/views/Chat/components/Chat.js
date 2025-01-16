@@ -1,9 +1,6 @@
-import {ANDROID_API_URL, IOS_API_URL} from '@env';
 import React, {useEffect, useState} from 'react';
-import {StyleSheet, Platform, SafeAreaView} from 'react-native';
+import {StyleSheet, SafeAreaView} from 'react-native';
 import {useRoute} from '@react-navigation/native';
-import axios from 'axios';
-import {skipToken} from '@reduxjs/toolkit/query';
 
 import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
 import {getSocket} from '../../../socket';
@@ -17,14 +14,11 @@ import ChatHeader from './ChatHeader';
 import ChatInput from './ChatInput';
 import ChatMessages from './ChatMessages';
 
-console.log('ANDROID_API_URL:', ANDROID_API_URL);
-
 const Chat = () => {
   const route = useRoute();
-  const {userId} = route.params;
+  const {userId, chatId} = route.params;
   const currentUser = useTypedSelector(selectedUser);
 
-  const [chatId, setChatId] = useState(skipToken);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [isUserOnline, setIsUserOnline] = useState(false);
@@ -33,9 +27,7 @@ const Chat = () => {
   const {data} = useGetAllUsersQuery({});
 
   // todo: GET MESSAGES BY CHAT ID API
-  const {data: messagesData} = useGetMessagesQuery(
-    chatId === skipToken ? skipToken : {chatId},
-  );
+  const {data: messagesData} = useGetMessagesQuery({chatId});
 
   useEffect(() => {
     if (messagesData?.data?.messages) {
@@ -89,41 +81,17 @@ const Chat = () => {
   // todo: Chat user
   const chatUser = data?.users?.find(user => user._id === userId);
 
-  const url = Platform.OS === 'android' ? ANDROID_API_URL : IOS_API_URL;
-
-  const createChat = async () => {
-    try {
-      const response = await axios.post(
-        `${url}chats`,
-        {userId},
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${currentUser.token}`,
-          },
-        },
-      );
-
-      const result = response.data;
-
-      if (result.status === 'success') {
-        setChatId(result.data.chat._id);
-        const socket = getSocket();
-        if (socket) {
-          // Join the chat room
-          socket.emit('join chat', result.data.chat._id);
-        }
-      }
-    } catch (error) {
-      console.error('Error creating chat:', error);
-    }
-  };
-
   useEffect(() => {
-    if (userId && currentUser.token) {
-      createChat();
+    if (currentUser.token) {
+      const socket = getSocket();
+      if (socket) {
+        // Join the chat rooms
+        socket.emit('join chat', chatId);
+      }
     }
-  }, [currentUser.token, userId]);
+  }, [currentUser.token]);
+
+  useEffect(() => {}, [chatId]);
 
   // todo: Send message API Mutation
   const [createMessage] = useCreateMessageMutation();

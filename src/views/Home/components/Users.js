@@ -68,7 +68,10 @@ const Users = () => {
 
       if (chat?.data?.status) {
         socket.emit('join chat', userId);
-        navigation.navigate('Chat', {userId});
+        navigation.navigate('Chat', {
+          chatId: chat?.data?.data?.chat?._id,
+          userId,
+        });
       }
 
       if (chat?.error) {
