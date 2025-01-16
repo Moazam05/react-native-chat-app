@@ -27,7 +27,7 @@ const ChatList = () => {
     const lastMessage = item.latestMessage;
 
     const handleChatPress = () => {
-      navigation.navigate('Chat', {userId: otherUser._id});
+      navigation.navigate('Chat', {userId: otherUser._id, chatId: item._id});
     };
 
     return (

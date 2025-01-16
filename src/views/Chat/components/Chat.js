@@ -29,6 +29,9 @@ const Chat = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [userTyping, setUserTyping] = useState(false);
 
+  console.log('userTyping', userTyping);
+  console.log('isTyping', isTyping);
+
   // RTK Query hooks
   const {data: usersData} = useGetAllUsersQuery({});
   const {data: messagesData, isLoading: messagesLoading} = useGetMessagesQuery(
@@ -146,7 +149,9 @@ const Chat = () => {
 
   // Send message handler
   const sendMessage = async () => {
-    if (!message.trim() || !chatId) return;
+    if (!message.trim() || !chatId) {
+      return;
+    }
 
     if (socketRef.current) {
       socketRef.current.emit('stop typing', chatId);
@@ -177,7 +182,9 @@ const Chat = () => {
 
   // File upload handler
   const handleFileUpload = async fileData => {
-    if (!chatId) return;
+    if (!chatId) {
+      return;
+    }
 
     const isPDF = fileData.type === 'application/pdf';
 
