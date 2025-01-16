@@ -40,7 +40,7 @@ const ChatList = () => {
           <View style={styles.topRow}>
             <Text style={styles.username}>{otherUser.username}</Text>
             <Text style={styles.timeStamp}>
-              {formatLastSeen(otherUser.lastSeen)}
+              {formatLastSeen(item?.latestMessage?.createdAt)}
             </Text>
           </View>
           <View style={styles.bottomRow}>
