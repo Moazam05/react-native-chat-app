@@ -87,13 +87,11 @@ const MessageTime = ({time, isSender}) => (
 const ChatMessages = ({
   messages,
   currentUser,
-  isTyping,
+  isReceiverTyping,
   isLoading,
   // onImagePress,
 }) => {
   const flatListRef = useRef(null);
-
-  console.log('isTyping', isTyping);
 
   const renderMessage = ({item}) => {
     const isSender = item.sender._id === currentUser.data.user._id;
@@ -159,7 +157,7 @@ const ChatMessages = ({
       );
     }
 
-    if (isTyping) {
+    if (isReceiverTyping) {
       return (
         <View style={[styles.messageContainer, styles.receiverMessage]}>
           <TypingIndicator />
@@ -178,7 +176,7 @@ const ChatMessages = ({
       keyExtractor={item => item._id}
       contentContainerStyle={styles.messagesList}
       inverted
-      ListFooterComponent={renderFooter}
+      ListHeaderComponent={renderFooter}
       onContentSizeChange={() => {
         if (messages.length > 0) {
           flatListRef.current?.scrollToOffset({offset: 0, animated: true});

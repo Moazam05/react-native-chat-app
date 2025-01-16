@@ -220,7 +220,7 @@ const Chat = () => {
         messages={messages}
         currentUser={currentUser}
         isLoading={messagesLoading}
-        isTyping={isTyping}
+        isReceiverTyping={userTyping}
       />
 
       <ChatInput
