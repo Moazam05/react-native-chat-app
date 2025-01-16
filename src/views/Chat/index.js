@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import React from 'react';
 import BottomNav from '../../components/BottomNav';
-import {useGetUserAllChatsQuery} from '../../redux/api/chatApiSlice';
+import {useGetChatQuery} from '../../redux/api/chatApiSlice';
 import {useNavigation} from '@react-navigation/native';
 import {formatLastSeen} from '../../utils';
 
@@ -19,7 +19,7 @@ const ChatList = () => {
   const navigation = useNavigation();
 
   // todo: GET USER ALL CHATS API
-  const {data, isLoading} = useGetUserAllChatsQuery({});
+  const {data, isLoading} = useGetChatQuery({});
 
   const renderChat = ({item}) => {
     const otherUser = item.users[0];

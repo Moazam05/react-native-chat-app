@@ -16,7 +16,7 @@ export const chatApiSlice = apiSlice.injectEndpoints({
     getChat: builder.query({
       query: () => {
         return {
-          url: 'chats/user-chats',
+          url: 'chats',
           method: 'GET',
         };
       },
