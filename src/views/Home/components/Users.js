@@ -10,24 +10,27 @@ import {
 import React, {useEffect, useState} from 'react';
 import {useNavigation} from '@react-navigation/native';
 
-import {getSocket} from '../../../socket';
+import {getSocket, initiateSocket} from '../../../socket';
 import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
 import useTypedSelector from '../../../hooks/useTypedSelector';
 import {selectedUser} from '../../../redux/auth/authSlice';
+import {useCreateChatMutation} from '../../../redux/api/chatApiSlice';
+import Toast from 'react-native-toast-message';
 
 const Users = () => {
   const navigation = useNavigation();
 
   const currentUser = useTypedSelector(selectedUser);
-
+  // states
   const [onlineUsers, setOnlineUsers] = useState(new Set());
 
-  // todo: Fetch all users
+  // todo: Fetch all users API Call
   const {data, isLoading} = useGetAllUsersQuery({});
 
-  // Handle socket events for online status
+  // todo: WebSocket
   useEffect(() => {
-    const socket = getSocket();
+    const socket = initiateSocket(currentUser.data.user);
+
     if (socket) {
       socket.on('user online', userId => {
         // console.log('User Online:', userId);
@@ -48,14 +51,40 @@ const Users = () => {
         socket.off('user offline');
       };
     }
-  }, []);
+  }, [currentUser]);
 
-  const handleUserPress = userId => {
+  // todo: Create Chat API Mutation
+  const [createChat] = useCreateChatMutation();
+
+  const handleUserPress = async userId => {
     const socket = getSocket();
-    if (socket) {
-      socket.emit('join chat', userId);
+
+    const payload = {
+      userId,
+    };
+
+    try {
+      const chat = await createChat(payload);
+
+      if (chat?.data?.status) {
+        socket.emit('join chat', userId);
+        navigation.navigate('Chat', {userId});
+      }
+
+      if (chat?.error) {
+        Toast.show({
+          type: 'error',
+          text2: chat?.error?.data?.message || 'Chat creation failed',
+        });
+      }
+    } catch (error) {
+      console.error('Create Chat Error:', error);
+
+      Toast.show({
+        type: 'error',
+        text2: 'Something went wrong',
+      });
     }
-    navigation.navigate('Chat', {userId});
   };
 
   const renderUser = ({item}) => {
@@ -86,21 +115,21 @@ const Users = () => {
     );
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF9F0A" />
-      </View>
-    );
-  }
-
   return (
-    <FlatList
-      data={data?.users || []}
-      renderItem={renderUser}
-      keyExtractor={item => item._id}
-      showsVerticalScrollIndicator={false}
-    />
+    <View>
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF9F0A" />
+        </View>
+      ) : (
+        <FlatList
+          data={data?.users || []}
+          renderItem={renderUser}
+          keyExtractor={item => item._id}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+    </View>
   );
 };
 
