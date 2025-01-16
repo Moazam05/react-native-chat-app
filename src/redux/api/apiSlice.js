@@ -5,28 +5,22 @@ import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react';
 console.log('ANDROID_API_URL:', ANDROID_API_URL);
 
 export const apiSlice = createApi({
-  reducerPath: 'api', // Unique and descriptive reducerPath
-
+  reducerPath: 'api',
   baseQuery: fetchBaseQuery({
     baseUrl: Platform.OS === 'ios' ? IOS_API_URL : ANDROID_API_URL,
     prepareHeaders: (headers, {getState}) => {
-      const token = getState().auth?.user?.token || '';
+      const token = getState().auth?.user?.token;
+
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }
-      headers.set('Content-Type', 'application/json');
-      headers.set('Accept', 'application/json');
 
-      // Add iOS specific headers if needed
-      if (Platform.OS === 'ios') {
-        headers.set('Cache-Control', 'no-cache');
-      }
+      // Let the browser/fetch handle Content-Type for FormData
+      headers.set('Accept', 'application/json');
 
       return headers;
     },
   }),
-  tagTypes: [], // Define tag types as needed for cache invalidation
-  endpoints: builder => ({
-    // Define your endpoints here
-  }),
+  tagTypes: ['Message'],
+  endpoints: builder => ({}),
 });

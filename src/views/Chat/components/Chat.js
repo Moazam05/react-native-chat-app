@@ -9,7 +9,10 @@ import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
 import {getSocket} from '../../../socket';
 import useTypedSelector from '../../../hooks/useTypedSelector';
 import {selectedUser} from '../../../redux/auth/authSlice';
-import {useGetMessageByChatIdQuery} from '../../../redux/api/chatApiSlice';
+import {
+  useGetMessageByChatIdQuery,
+  useSendMessageMutation,
+} from '../../../redux/api/chatApiSlice';
 import ChatHeader from './ChatHeader';
 import ChatInput from './ChatInput';
 import ChatMessages from './ChatMessages';
@@ -122,87 +125,82 @@ const Chat = () => {
     }
   }, [currentUser.token, userId]);
 
+  // todo: Send message API Mutation
+  const [sendMessageMutation] = useSendMessageMutation();
+
+  // In your Chat component:
+  const sendMessage = async () => {
+    if (!message.trim() || !chatId) {
+      return;
+    }
+
+    const messageData = {
+      content: message.trim(),
+      messageType: 'text',
+    };
+
+    try {
+      const response = await sendMessageMutation({
+        chatId,
+        ...messageData,
+      }).unwrap();
+
+      if (response.status === 'success') {
+        const newMessage = response.data.message;
+
+        // Emit through socket
+        const socket = getSocket();
+        if (socket) {
+          socket.emit('new message', {
+            ...newMessage,
+            sender: currentUser.data.user._id,
+          });
+        }
+
+        // Update local messages
+        setMessages(prev => [newMessage, ...prev]);
+        setMessage('');
+      }
+    } catch (error) {
+      console.error('Error details:', error);
+    }
+  };
+
   const handleFileUpload = async fileData => {
     if (!chatId) {
       return;
     }
 
-    const formData = new FormData();
     const isPDF = fileData.type === 'application/pdf';
 
-    formData.append('messageType', isPDF ? 'document' : 'image');
-    formData.append('file', {
-      uri: fileData.uri,
-      type: fileData.type || 'image/jpeg',
-      name: fileData.name || (isPDF ? 'document.pdf' : 'image.jpg'),
-    });
-
     try {
-      // Only make the API call, don't emit socket event
-      const response = await axios.post(`${url}messages/${chatId}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${currentUser.token}`,
+      const response = await sendMessageMutation({
+        chatId,
+        messageType: isPDF ? 'document' : 'image',
+        file: {
+          uri: fileData.uri,
+          type: fileData.type || 'image/jpeg',
+          name: fileData.name || (isPDF ? 'document.pdf' : 'image.jpg'),
         },
-      });
+      }).unwrap();
 
-      if (response.data.status === 'success') {
-        // Update local messages with server response
-        const serverMessage = response.data.data.message;
-        setMessages(prev => [
-          {
-            ...serverMessage,
-            sender: {
-              _id: currentUser.data.user._id,
-              username: currentUser.data.user.username,
-              avatar: currentUser.data.user.avatar,
-            },
-          },
-          ...prev,
-        ]);
+      if (response.status === 'success') {
+        const newMessage = response.data.message;
+
+        // Emit socket event
+        const socket = getSocket();
+        if (socket) {
+          socket.emit('new message', {
+            ...newMessage,
+            sender: currentUser.data.user._id,
+          });
+        }
+
+        // Update local messages
+        setMessages(prev => [newMessage, ...prev]);
       }
     } catch (error) {
-      console.error(
-        'Error uploading file:',
-        error.response?.data || error.message,
-      );
-    }
-  };
-
-  // Update sendMessage function for consistency
-  const sendMessage = () => {
-    if (!message.trim() || !chatId) {
-      return;
-    }
-
-    const socket = getSocket();
-    if (socket) {
-      const messageData = {
-        sender: currentUser.data.user._id,
-        content: message,
-        chatId: chatId,
-        messageType: 'text',
-      };
-
-      socket.emit('new message', messageData);
-
-      // Local update for text messages
-      setMessages(prev => [
-        {
-          _id: Date.now().toString(),
-          ...messageData,
-          sender: {
-            _id: currentUser.data.user._id,
-            username: currentUser.data.user.username,
-            avatar: currentUser.data.user.avatar,
-          },
-          readBy: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        ...prev,
-      ]);
-      setMessage('');
+      console.error('Error details:', error);
     }
   };
 
