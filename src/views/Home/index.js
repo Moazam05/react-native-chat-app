@@ -7,12 +7,16 @@ import {selectedUser} from '../../redux/auth/authSlice';
 import HomeHeader from './components/HomeHeader';
 import Users from './components/Users';
 import BottomNav from '../../components/BottomNav';
+import {useNavigation} from '@react-navigation/native';
 
 const Home = () => {
+  const navigation = useNavigation();
   const currentUser = useTypedSelector(selectedUser);
 
   const handleAddPress = () => {};
-  const handleAvatarPress = () => {};
+  const handleAvatarPress = () => {
+    navigation.navigate('Profile');
+  };
 
   return (
     <SafeAreaView style={styles.container}>
