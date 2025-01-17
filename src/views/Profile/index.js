@@ -6,20 +6,25 @@ import {
   TextInput,
   TouchableOpacity,
   Platform,
-  Alert,
+  ActivityIndicator,
+  Keyboard,
 } from 'react-native';
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {launchImageLibrary} from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useNavigation} from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
 
 import useTypedSelector from '../../hooks/useTypedSelector';
-import {selectedUser} from '../../redux/auth/authSlice';
+import {selectedUser, setUser} from '../../redux/auth/authSlice';
 import {useUpdateUserMutation} from '../../redux/api/userApiSlice';
+import {useDispatch} from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Profile = () => {
   const navigation = useNavigation();
+  const dispatch = useDispatch();
   const currentUser = useTypedSelector(selectedUser);
 
   const [formData, setFormData] = useState({
@@ -28,6 +33,28 @@ const Profile = () => {
     avatar: currentUser?.data?.user?.avatar || '',
   });
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => {
+        setIsKeyboardVisible(true);
+      },
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setIsKeyboardVisible(false);
+      },
+    );
+
+    // Cleanup listeners on component unmount
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   const handleImagePick = async () => {
     const options = {
@@ -58,7 +85,10 @@ const Profile = () => {
 
   const handleSubmit = async () => {
     if (!currentUser?.data?.user?._id) {
-      Alert.alert('Error', 'User ID not found');
+      Toast.show({
+        type: 'error',
+        text2: 'User ID not found',
+      });
       return;
     }
 
@@ -77,13 +107,35 @@ const Profile = () => {
       }
 
       const response = await updateUser(updateData).unwrap();
-      console.log('Update response:', response);
 
-      Alert.alert('Success', 'Profile updated successfully');
-      navigation.goBack();
+      if (response.status === 'success') {
+        const updatedUser = {
+          ...currentUser,
+          data: {
+            ...currentUser.data,
+            user: {
+              ...currentUser.data.user,
+              username: response.data.user.username,
+              avatar: response.data.user.avatar,
+            },
+          },
+        };
+
+        dispatch(setUser(updatedUser));
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+
+        Toast.show({
+          type: 'success',
+          text2: 'Profile updated successfully',
+        });
+        navigation.goBack();
+      }
     } catch (error) {
       console.error('Error updating profile:', error);
-      Alert.alert('Error', 'Failed to update profile');
+      Toast.show({
+        type: 'error',
+        text2: 'Failed to update profile',
+      });
     }
   };
 
@@ -147,20 +199,26 @@ const Profile = () => {
             />
           </View>
           <TouchableOpacity
-            style={[styles.updateButton, isLoading && styles.disabledButton]}
+            style={styles.updateButton}
             onPress={handleSubmit}
             disabled={isLoading}>
             <Text style={styles.buttonText}>
-              {isLoading ? 'Updating...' : 'Update Profile'}
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                'Update Profile'
+              )}
             </Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Icon name="logout" size={18} color="#fff" />
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
+      {!isKeyboardVisible && (
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Icon name="logout" size={18} color="#fff" />
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 };
@@ -240,8 +298,8 @@ const styles = StyleSheet.create({
   },
   updateButton: {
     backgroundColor: '#FF9F0A',
-    paddingVertical: 14,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
     marginTop: 20,
   },
