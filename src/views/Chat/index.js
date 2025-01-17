@@ -92,7 +92,7 @@ const ChatList = () => {
                   numberOfLines={1}
                   ellipsizeMode="tail"
                   style={styles.messageContainer}>
-                  {lastMessage.sender.username === otherUser.username ? (
+                  {lastMessage?.sender?.username === otherUser?.username ? (
                     <Text style={styles.lastMessage}>
                       {lastMessage.content}
                     </Text>
