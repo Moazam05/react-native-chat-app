@@ -15,11 +15,14 @@ import {useNavigation} from '@react-navigation/native';
 import {formatLastSeen} from '../../utils';
 import {getSocket} from '../../socket';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import useTypedSelector from '../../hooks/useTypedSelector';
+import {selectedUser} from '../../redux/auth/authSlice';
 
 const ChatList = () => {
   const socket = getSocket();
-
   const navigation = useNavigation();
+  const currentUser = useTypedSelector(selectedUser);
+
   const [chats, setChats] = useState([]);
 
   // todo: GET USER ALL CHATS API
@@ -40,18 +43,26 @@ const ChatList = () => {
   }, [data]);
 
   useEffect(() => {
-    if (!socket) {
+    if (!socket || !currentUser?.data?.user?._id) {
       return;
     }
 
     // Listen for new messages and updates
     socket.on('chat list update', ({chatId, lastMessage, unreadCount}) => {
       setChats(prevChats =>
-        prevChats.map(chat =>
-          chat._id === chatId
-            ? {...chat, latestMessage: lastMessage, unreadCount}
-            : chat,
-        ),
+        prevChats.map(chat => {
+          if (chat._id === chatId) {
+            // Only show unread count if the current user is NOT the sender
+            const shouldShowCount =
+              lastMessage?.sender?._id !== currentUser.data.user._id;
+            return {
+              ...chat,
+              latestMessage: lastMessage,
+              unreadCount: shouldShowCount ? unreadCount : 0,
+            };
+          }
+          return chat;
+        }),
       );
     });
 
@@ -71,13 +82,16 @@ const ChatList = () => {
       socket.off('chat list update');
       socket.off('messages read');
     };
-  }, [socket]);
+  }, [socket, currentUser]);
 
   const renderChat = ({item}) => {
     const otherUser = item.users[0];
     const isOnline = otherUser.isOnline;
     const lastMessage = item.latestMessage;
-    const unreadCount = item.unreadCount || 0;
+    // Only show unread count if the current user is NOT the sender of the last message
+    const showUnreadCount =
+      lastMessage?.sender?._id !== currentUser?.data?.user?._id &&
+      item.unreadCount > 0;
 
     const handleChatPress = () => {
       navigation.navigate('Chat', {userId: otherUser._id, chatId: item._id});
@@ -116,9 +130,9 @@ const ChatList = () => {
                     </>
                   )}
                 </Text>
-                {unreadCount > 0 && (
+                {showUnreadCount && (
                   <View style={styles.unreadBadge}>
-                    <Text style={styles.unreadCount}>{unreadCount}</Text>
+                    <Text style={styles.unreadCount}>{item.unreadCount}</Text>
                   </View>
                 )}
               </>
