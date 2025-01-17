@@ -10,7 +10,7 @@ import {
 import React, {useEffect, useState} from 'react';
 import {useNavigation} from '@react-navigation/native';
 
-import {getSocket, initiateSocket} from '../../../socket';
+import {getSocket} from '../../../socket';
 import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
 import useTypedSelector from '../../../hooks/useTypedSelector';
 import {selectedUser} from '../../../redux/auth/authSlice';
@@ -29,16 +29,17 @@ const Users = () => {
 
   // todo: WebSocket
   useEffect(() => {
-    const socket = initiateSocket(currentUser.data.user);
+    const socket = getSocket();
 
     if (socket) {
+      // Set initial online users
+      socket.emit('get online users');
+
       socket.on('user online', userId => {
-        // console.log('User Online:', userId);
         setOnlineUsers(prev => new Set([...prev, userId]));
       });
 
       socket.on('user offline', userId => {
-        // console.log('User Offline:', userId);
         setOnlineUsers(prev => {
           const newSet = new Set(prev);
           newSet.delete(userId);
@@ -46,23 +47,27 @@ const Users = () => {
         });
       });
 
+      // Optional: Handle initial online users list
+      socket.on('online users', users => {
+        setOnlineUsers(new Set(users));
+      });
+
       return () => {
         socket.off('user online');
         socket.off('user offline');
+        socket.off('online users');
       };
     }
-  }, [currentUser]);
+  }, []);
 
   // todo: Create Chat API Mutation
   const [createChat] = useCreateChatMutation();
 
   const handleUserPress = async userId => {
     const socket = getSocket();
-
     const payload = {
       userId,
     };
-
     try {
       const chat = await createChat(payload);
 
@@ -82,7 +87,6 @@ const Users = () => {
       }
     } catch (error) {
       console.error('Create Chat Error:', error);
-
       Toast.show({
         type: 'error',
         text2: 'Something went wrong',
