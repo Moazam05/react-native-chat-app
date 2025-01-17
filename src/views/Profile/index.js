@@ -6,15 +6,17 @@ import {
   TextInput,
   TouchableOpacity,
   Platform,
+  Alert,
 } from 'react-native';
 import React, {useState} from 'react';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {launchImageLibrary} from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import {useNavigation} from '@react-navigation/native';
 
 import useTypedSelector from '../../hooks/useTypedSelector';
 import {selectedUser} from '../../redux/auth/authSlice';
-import {useNavigation} from '@react-navigation/native';
+import {useUpdateUserMutation} from '../../redux/api/userApiSlice';
 
 const Profile = () => {
   const navigation = useNavigation();
@@ -51,23 +53,38 @@ const Profile = () => {
     }
   };
 
-  const handleSubmit = () => {
-    // Create FormData object
-    const payload = new FormData();
-    payload.append('name', formData.name);
+  // todo: Update user profile API Mutation
+  const [updateUser, {isLoading}] = useUpdateUserMutation();
 
-    if (selectedImage) {
-      const imageFile = {
-        uri: selectedImage,
-        type: 'image/jpeg',
-        name: 'profile-image.jpg',
-      };
-      payload.append('avatar', imageFile);
+  const handleSubmit = async () => {
+    if (!currentUser?.data?.user?._id) {
+      Alert.alert('Error', 'User ID not found');
+      return;
     }
 
-    // Log the payload
-    console.log('Submitting payload:', payload);
-    // Here you would typically make your API call
+    try {
+      const updateData = {
+        username: formData.name,
+      };
+
+      // Add avatar if selected
+      if (selectedImage) {
+        updateData.avatar = {
+          uri: selectedImage,
+          type: 'image/jpeg',
+          name: 'profile-image.jpg',
+        };
+      }
+
+      const response = await updateUser(updateData).unwrap();
+      console.log('Update response:', response);
+
+      Alert.alert('Success', 'Profile updated successfully');
+      navigation.goBack();
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Alert.alert('Error', 'Failed to update profile');
+    }
   };
 
   const handleLogout = () => {
@@ -129,9 +146,13 @@ const Profile = () => {
               editable={false}
             />
           </View>
-
-          <TouchableOpacity style={styles.updateButton} onPress={handleSubmit}>
-            <Text style={styles.buttonText}>Update Profile</Text>
+          <TouchableOpacity
+            style={[styles.updateButton, isLoading && styles.disabledButton]}
+            onPress={handleSubmit}
+            disabled={isLoading}>
+            <Text style={styles.buttonText}>
+              {isLoading ? 'Updating...' : 'Update Profile'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -245,6 +266,9 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  disabledButton: {
+    backgroundColor: '#b0bec5',
   },
 });
 
