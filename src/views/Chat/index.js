@@ -17,56 +17,65 @@ import {getSocket} from '../../socket';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 const ChatList = () => {
+  const socket = getSocket();
+
   const navigation = useNavigation();
   const [chats, setChats] = useState([]);
-  const [unreadCounts, setUnreadCounts] = useState({}); // Store unread counts by chatId
 
   // todo: GET USER ALL CHATS API
   const {data, isLoading} = useGetChatQuery({});
 
   useEffect(() => {
     if (data?.data?.chats) {
-      setChats(data.data.chats);
+      // Initialize chats with unread counts from API
+      setChats(
+        data.data.chats.map(chat => ({
+          ...chat,
+          unreadCount: chat.unreadCount || 0,
+        })),
+      );
     }
   }, [data]);
 
   useEffect(() => {
-    const socket = getSocket();
-
-    if (socket) {
-      // Listen for chat list updates
-      socket.on('chat list update', ({chatId, lastMessage, unreadCount}) => {
-        setChats(prevChats =>
-          prevChats.map(chat => {
-            if (chat._id === chatId) {
-              return {
-                ...chat,
-                latestMessage: lastMessage,
-                unreadCount: (chat.unreadCount || 0) + unreadCount,
-              };
-            }
-            return chat;
-          }),
-        );
-
-        // Update unread counts
-        setUnreadCounts(prev => ({
-          ...prev,
-          [chatId]: (prev[chatId] || 0) + unreadCount,
-        }));
-      });
-
-      return () => {
-        socket.off('chat list update');
-      };
+    if (!socket) {
+      return;
     }
-  }, []);
+
+    // Listen for new messages and updates
+    socket.on('chat list update', ({chatId, lastMessage, unreadCount}) => {
+      setChats(prevChats =>
+        prevChats.map(chat =>
+          chat._id === chatId
+            ? {...chat, latestMessage: lastMessage, unreadCount}
+            : chat,
+        ),
+      );
+    });
+
+    // Listen for read messages
+    socket.on('messages read', ({chatId, userId}) => {
+      setChats(prevChats =>
+        prevChats.map(chat =>
+          chat._id === chatId ? {...chat, unreadCount: 0} : chat,
+        ),
+      );
+    });
+
+    // Request initial chat updates
+    socket.emit('get chat updates');
+
+    return () => {
+      socket.off('chat list update');
+      socket.off('messages read');
+    };
+  }, [socket]);
 
   const renderChat = ({item}) => {
     const otherUser = item.users[0];
     const isOnline = otherUser.isOnline;
     const lastMessage = item.latestMessage;
-    const unreadCount = unreadCounts[item._id] || 0;
+    const unreadCount = item.unreadCount || 0;
 
     const handleChatPress = () => {
       navigation.navigate('Chat', {userId: otherUser._id, chatId: item._id});
