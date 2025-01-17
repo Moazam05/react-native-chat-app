@@ -123,7 +123,7 @@ const Users = () => {
   };
 
   return (
-    <View>
+    <View style={styles.wrap}>
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF9F0A" />
@@ -141,6 +141,9 @@ const Users = () => {
 };
 
 const styles = StyleSheet.create({
+  wrap: {
+    flex: 1,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

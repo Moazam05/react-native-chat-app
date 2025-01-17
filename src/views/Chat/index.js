@@ -26,9 +26,25 @@ const ChatList = () => {
   const [chats, setChats] = useState([]);
 
   // todo: GET USER ALL CHATS API
-  const {data, isLoading} = useGetChatQuery({
+  const {
+    data,
+    isLoading,
+    refetch: refetchChat,
+  } = useGetChatQuery({
     refetchOnMountOrArgChange: true,
   });
+
+  useEffect(() => {
+    if (!data?.results || data.results.length === 0) {
+      const timer = setTimeout(() => {
+        refetchChat();
+        console.log('Refetching chats...');
+      }, 3000);
+
+      // Cleanup function to clear the timeout
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   useEffect(() => {
     if (data?.data?.chats) {
