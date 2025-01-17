@@ -34,17 +34,14 @@ const ChatList = () => {
     refetchOnMountOrArgChange: true,
   });
 
+  // Add refetch on focus
   useEffect(() => {
-    if (!data?.results || data.results.length === 0) {
-      const timer = setTimeout(() => {
-        refetchChat();
-        console.log('Refetching chats...');
-      }, 3000);
+    const unsubscribe = navigation.addListener('focus', () => {
+      refetchChat();
+    });
 
-      // Cleanup function to clear the timeout
-      return () => clearTimeout(timer);
-    }
-  }, []);
+    return unsubscribe;
+  }, [navigation, refetchChat]);
 
   useEffect(() => {
     if (data?.data?.chats) {
@@ -91,12 +88,17 @@ const ChatList = () => {
       );
     });
 
+    socket.on('new chat notification', chatData => {
+      refetchChat(); // Refetch to get fresh data
+    });
+
     // Request initial chat updates
     socket.emit('get chat updates');
 
     return () => {
       socket.off('chat list update');
       socket.off('messages read');
+      socket.off('new chat notification');
     };
   }, [socket, currentUser]);
 
