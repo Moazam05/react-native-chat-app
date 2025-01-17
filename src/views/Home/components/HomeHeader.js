@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  SafeAreaView,
-} from 'react-native';
+import {View, Text, TouchableOpacity, Image, StyleSheet} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const HomeHeader = ({
@@ -16,7 +9,7 @@ const HomeHeader = ({
   onAvatarPress,
 }) => {
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.leftSection}>
           <TouchableOpacity style={styles.addButton} onPress={onAddPress}>
@@ -35,7 +28,7 @@ const HomeHeader = ({
           </TouchableOpacity>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
