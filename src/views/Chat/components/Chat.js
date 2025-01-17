@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useCallback, useRef} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {StyleSheet, SafeAreaView} from 'react-native';
 import {useRoute} from '@react-navigation/native';
 
@@ -19,8 +19,8 @@ const Chat = () => {
   const route = useRoute();
   const {userId, chatId} = route.params;
   const currentUser = useTypedSelector(selectedUser);
-  const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const socket = getSocket(); // Get existing socket directly
 
   // State management
   const [message, setMessage] = useState('');
@@ -42,38 +42,26 @@ const Chat = () => {
   // Get chat user details
   const chatUser = usersData?.users?.find(user => user._id === userId);
 
-  // Socket setup
-  const setupSocket = () => {
-    const socket = getSocket();
+  // Socket listeners setup
+  useEffect(() => {
     if (socket) {
-      socketRef.current = socket;
-
-      // Setup user and join chat
-      socket.emit('setup', currentUser.data.user);
+      // Join chat room
       socket.emit('join chat', chatId);
 
       // Online status handling
       socket.on('user online', onlineUserId => {
-        console.log('Online event received for:', onlineUserId);
         if (onlineUserId === userId) {
           setIsUserOnline(true);
         }
       });
 
       socket.on('user offline', offlineUserId => {
-        console.log('Offline event received for:', offlineUserId);
         if (offlineUserId === userId) {
           setIsUserOnline(false);
         }
       });
 
-      // Add connected handler
-      socket.on('connected', () => {
-        console.log('Socket connected, checking status');
-        socket.emit('check user status', userId);
-      });
-
-      // Keep your existing message and typing handlers as they are
+      // Message and typing handlers
       socket.on('message received', newMessage => {
         if (
           newMessage.chatId === chatId &&
@@ -92,32 +80,17 @@ const Chat = () => {
 
       // Initial status check
       socket.emit('check user status', userId);
-    }
-  };
 
-  // Cleanup socket
-  const cleanupSocket = () => {
-    if (socketRef.current) {
-      socketRef.current.off('message received');
-      socketRef.current.off('typing');
-      socketRef.current.off('stop typing');
-      socketRef.current.off('user online');
-      socketRef.current.off('user offline');
+      // Cleanup listeners
+      return () => {
+        socket.off('message received');
+        socket.off('typing');
+        socket.off('stop typing');
+        socket.off('user online');
+        socket.off('user offline');
+      };
     }
-  };
-
-  // Initial socket setup and cleanup
-  useEffect(() => {
-    // Only setup if socket doesn't exist
-    if (!socketRef.current) {
-      setupSocket();
-    } else {
-      // If socket exists, just join the chat
-      socketRef.current.emit('join chat', chatId);
-    }
-
-    return () => cleanupSocket();
-  }, []);
+  }, [chatId, userId]);
 
   // Update messages when data changes
   useEffect(() => {
@@ -134,21 +107,19 @@ const Chat = () => {
   const handleTyping = text => {
     setMessage(text);
 
-    if (socketRef.current) {
+    if (socket) {
       if (!isTyping) {
         setIsTyping(true);
-        socketRef.current.emit('typing', chatId);
+        socket.emit('typing', chatId);
       }
 
-      // Clear existing timeout
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
 
-      // Set new timeout
       typingTimeoutRef.current = setTimeout(() => {
-        if (socketRef.current && isTyping) {
-          socketRef.current.emit('stop typing', chatId);
+        if (socket && isTyping) {
+          socket.emit('stop typing', chatId);
           setIsTyping(false);
         }
       }, 3000);
@@ -157,12 +128,10 @@ const Chat = () => {
 
   // Send message handler
   const sendMessage = async () => {
-    if (!message.trim() || !chatId) {
-      return;
-    }
+    if (!message.trim() || !chatId) return;
 
-    if (socketRef.current) {
-      socketRef.current.emit('stop typing', chatId);
+    if (socket) {
+      socket.emit('stop typing', chatId);
     }
 
     try {
@@ -174,25 +143,18 @@ const Chat = () => {
 
       if (response.status === 'success') {
         const newMessage = response.data.message;
-
-        if (socketRef.current) {
-          socketRef.current.emit('new message', newMessage);
-        }
-
+        socket?.emit('new message', newMessage);
         setMessage('');
         setIsTyping(false);
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      // Handle error (show toast or alert)
     }
   };
 
-  // File upload handler
+  // File upload handler - simplified error handling
   const handleFileUpload = async fileData => {
-    if (!chatId) {
-      return;
-    }
+    if (!chatId) return;
 
     const isPDF = fileData.type === 'application/pdf';
 
@@ -208,29 +170,22 @@ const Chat = () => {
       }).unwrap();
 
       if (response.status === 'success') {
-        const newMessage = response.data.message;
-
-        if (socketRef.current) {
-          socketRef.current.emit('new message', newMessage);
-        }
+        socket?.emit('new message', response.data.message);
       }
     } catch (error) {
       console.error('Error uploading file:', error);
-      // Handle error (show toast or alert)
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <ChatHeader chatUser={chatUser} isUserOnline={isUserOnline} />
-
       <ChatMessages
         messages={messages}
         currentUser={currentUser}
         isLoading={messagesLoading}
         isReceiverTyping={userTyping}
       />
-
       <ChatInput
         message={message}
         onChangeText={handleTyping}

@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import BottomNav from '../../components/BottomNav';
 import {useGetChatQuery} from '../../redux/api/chatApiSlice';
 import {useNavigation} from '@react-navigation/native';
@@ -20,7 +20,6 @@ const ChatList = () => {
   const navigation = useNavigation();
   const [chats, setChats] = useState([]);
   const [unreadCounts, setUnreadCounts] = useState({}); // Store unread counts by chatId
-  const socketRef = useRef(null);
 
   // todo: GET USER ALL CHATS API
   const {data, isLoading} = useGetChatQuery({});
@@ -31,12 +30,10 @@ const ChatList = () => {
     }
   }, [data]);
 
-  // Socket setup
   useEffect(() => {
     const socket = getSocket();
-    if (socket) {
-      socketRef.current = socket;
 
+    if (socket) {
       // Listen for chat list updates
       socket.on('chat list update', ({chatId, lastMessage, unreadCount}) => {
         setChats(prevChats =>
@@ -58,13 +55,11 @@ const ChatList = () => {
           [chatId]: (prev[chatId] || 0) + unreadCount,
         }));
       });
-    }
 
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.off('chat list update');
-      }
-    };
+      return () => {
+        socket.off('chat list update');
+      };
+    }
   }, []);
 
   const renderChat = ({item}) => {
