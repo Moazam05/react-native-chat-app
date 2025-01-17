@@ -23,7 +23,9 @@ const ChatList = () => {
   const [chats, setChats] = useState([]);
 
   // todo: GET USER ALL CHATS API
-  const {data, isLoading} = useGetChatQuery({});
+  const {data, isLoading} = useGetChatQuery({
+    refetchOnMountOrArgChange: true,
+  });
 
   useEffect(() => {
     if (data?.data?.chats) {
