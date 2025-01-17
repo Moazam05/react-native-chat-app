@@ -1,5 +1,5 @@
 import React, {useEffect, useState, useRef} from 'react';
-import {StyleSheet, SafeAreaView} from 'react-native';
+import {StyleSheet} from 'react-native';
 import {useRoute} from '@react-navigation/native';
 
 import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
@@ -14,6 +14,7 @@ import {
 import ChatHeader from './ChatHeader';
 import ChatInput from './ChatInput';
 import ChatMessages from './ChatMessages';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 const Chat = () => {
   const route = useRoute();

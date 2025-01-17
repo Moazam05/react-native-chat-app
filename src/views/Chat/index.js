@@ -1,7 +1,6 @@
 import {
   View,
   Text,
-  SafeAreaView,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -15,6 +14,7 @@ import {useGetChatQuery} from '../../redux/api/chatApiSlice';
 import {useNavigation} from '@react-navigation/native';
 import {formatLastSeen} from '../../utils';
 import {getSocket} from '../../socket';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 const ChatList = () => {
   const navigation = useNavigation();
