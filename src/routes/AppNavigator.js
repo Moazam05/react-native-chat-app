@@ -1,6 +1,9 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {NavigationContainer} from '@react-navigation/native';
+import useTypedSelector from '../hooks/useTypedSelector';
+import {selectedUser} from '../redux/auth/authSlice';
+import {getSocket, initiateSocket} from '../socket';
 
 import Home from '../views/Home';
 import Login from '../views/Auth/Login';
@@ -12,6 +15,38 @@ import ChatList from '../views/Chat';
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
+  const currentUser = useTypedSelector(selectedUser);
+
+  useEffect(() => {
+    const setupSocketConnection = async () => {
+      try {
+        if (currentUser?.data?.user) {
+          const existingSocket = getSocket();
+          if (!existingSocket) {
+            console.log(
+              'Initializing socket for user:',
+              currentUser.data.user.username,
+            );
+            initiateSocket(currentUser.data.user);
+          }
+        }
+      } catch (error) {
+        console.error('Socket setup error:', error);
+      }
+    };
+
+    setupSocketConnection();
+
+    // Cleanup socket only when app is closed/background
+    return () => {
+      const socket = getSocket();
+      if (socket) {
+        console.log('Disconnecting socket');
+        socket.disconnect();
+      }
+    };
+  }, [currentUser?.data?.user?._id]); // Only re-run if user ID changes
+
   return (
     <NavigationContainer>
       <Stack.Navigator

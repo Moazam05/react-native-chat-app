@@ -1,8 +1,7 @@
-import {ANDROID_SOCKET_URL, IOS_SOCKET_URL} from '@env';
-import {Platform} from 'react-native';
+// socket.js
+import {Platform, AppState} from 'react-native';
 import io from 'socket.io-client';
-
-console.log('ANDROID_SOCKET_URL', ANDROID_SOCKET_URL);
+import {ANDROID_SOCKET_URL, IOS_SOCKET_URL} from '@env';
 
 let socket;
 
@@ -16,12 +15,25 @@ export const initiateSocket = user => {
 
   socket.on('connect', () => {
     console.log('Connected to socket server');
-    // Setup user's room
     socket.emit('setup', user);
   });
 
   socket.on('connect_error', error => {
     console.log('Socket connection error:', error);
+  });
+
+  // Handle app state changes
+  AppState.addEventListener('change', nextAppState => {
+    if (nextAppState === 'active') {
+      // App came to foreground
+      if (!socket.connected) {
+        socket.connect();
+        socket.emit('setup', user);
+      }
+    } else if (nextAppState === 'background' || nextAppState === 'inactive') {
+      // App went to background
+      socket.emit('app background');
+    }
   });
 
   return socket;

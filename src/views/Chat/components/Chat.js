@@ -103,13 +103,19 @@ const Chat = () => {
       socketRef.current.off('stop typing');
       socketRef.current.off('user online');
       socketRef.current.off('user offline');
-      socketRef.current.disconnect();
     }
   };
 
   // Initial socket setup and cleanup
   useEffect(() => {
-    setupSocket();
+    // Only setup if socket doesn't exist
+    if (!socketRef.current) {
+      setupSocket();
+    } else {
+      // If socket exists, just join the chat
+      socketRef.current.emit('join chat', chatId);
+    }
+
     return () => cleanupSocket();
   }, []);
 
