@@ -129,7 +129,9 @@ const Chat = () => {
 
   // Send message handler
   const sendMessage = async () => {
-    if (!message.trim() || !chatId) return;
+    if (!message.trim() || !chatId) {
+      return;
+    }
 
     if (socket) {
       socket.emit('stop typing', chatId);
@@ -155,7 +157,9 @@ const Chat = () => {
 
   // File upload handler - simplified error handling
   const handleFileUpload = async fileData => {
-    if (!chatId) return;
+    if (!chatId) {
+      return;
+    }
 
     const isPDF = fileData.type === 'application/pdf';
 
