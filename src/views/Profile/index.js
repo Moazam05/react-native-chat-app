@@ -5,6 +5,7 @@ import {
   Image,
   TextInput,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import React, {useState} from 'react';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -13,8 +14,10 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import useTypedSelector from '../../hooks/useTypedSelector';
 import {selectedUser} from '../../redux/auth/authSlice';
+import {useNavigation} from '@react-navigation/native';
 
 const Profile = () => {
+  const navigation = useNavigation();
   const currentUser = useTypedSelector(selectedUser);
 
   const [formData, setFormData] = useState({
@@ -74,6 +77,12 @@ const Profile = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}>
+        <Icon name="arrow-back" size={22} color="#333" />
+      </TouchableOpacity>
+
       <View style={styles.content}>
         <TouchableOpacity
           style={styles.imageContainer}
@@ -107,7 +116,7 @@ const Profile = () => {
             />
           </View>
 
-          <View style={styles.inputContainer}>
+          <View style={[styles.inputContainer, styles.readOnlyInput]}>
             <Icon
               name="email"
               size={24}
@@ -140,13 +149,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 30 : 20,
+    left: 20,
+    zIndex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    padding: 6,
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
   content: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 20,
   },
   imageContainer: {
-    marginTop: 20,
+    marginTop: 50,
     position: 'relative',
   },
   profileImage: {
