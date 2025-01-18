@@ -84,5 +84,7 @@ export const disconnectSocket = () => {
   }
 };
 
+export const isUserOnline = userId => onlineUsers.has(userId);
+
 export const getSocket = () => socket;
 export const getOnlineUsers = () => Array.from(onlineUsers);

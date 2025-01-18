@@ -45,7 +45,7 @@ const AppNavigator = () => {
             });
 
             socketInstance.on('online users', () => {
-              console.log('AppNavigator - Online Users: 3', getOnlineUsers());
+              // console.log('AppNavigator - Online Users: 3', getOnlineUsers());
             });
           }
         }

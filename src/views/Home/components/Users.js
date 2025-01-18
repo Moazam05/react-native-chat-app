@@ -10,7 +10,7 @@ import {
 import React, {useEffect, useState} from 'react';
 import {useNavigation} from '@react-navigation/native';
 
-import {getSocket} from '../../../socket';
+import {getOnlineUsers, getSocket, isUserOnline} from '../../../socket';
 import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
 import useTypedSelector from '../../../hooks/useTypedSelector';
 import {selectedUser} from '../../../redux/auth/authSlice';
@@ -93,13 +93,12 @@ const Users = () => {
       });
     }
   };
-
   const renderUser = ({item}) => {
     if (item._id === currentUser?.data?.user?._id) {
       return null;
     }
 
-    const isOnline = onlineUsers.has(item._id) || item.isOnline;
+    const isOnline = isUserOnline(item._id);
 
     return (
       <TouchableOpacity
