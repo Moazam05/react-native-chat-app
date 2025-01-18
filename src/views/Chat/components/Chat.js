@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useState, useRef, useMemo} from 'react';
 import {StyleSheet} from 'react-native';
 import {useRoute, useIsFocused} from '@react-navigation/native';
 
@@ -18,7 +18,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 
 const Chat = () => {
   const route = useRoute();
-  const {userId, chatId} = route.params;
+  const {userId, chatId, isGroupChat, chatName} = route.params;
   const currentUser = useTypedSelector(selectedUser);
   const typingTimeoutRef = useRef(null);
   const socket = getSocket();
@@ -41,8 +41,16 @@ const Chat = () => {
   );
   const [createMessage] = useCreateMessageMutation();
 
-  // Get chat user details
-  const chatUser = usersData?.users?.find(user => user._id === userId);
+  const chatUser = useMemo(() => {
+    if (isGroupChat) {
+      return {
+        username: chatName,
+        avatar: null, // This will trigger group avatar display
+      };
+    }
+    const user = usersData?.users?.find(findUser => findUser._id === userId);
+    return user || null;
+  }, [isGroupChat, chatName, userId, usersData]);
 
   // Handle screen focus/unfocus
   useEffect(() => {
@@ -194,12 +202,16 @@ const Chat = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ChatHeader chatUser={chatUser} isUserOnline={isUserOnline(userId)} />
+      <ChatHeader
+        chatUser={chatUser}
+        isUserOnline={!isGroupChat && isUserOnline(userId)}
+      />
       <ChatMessages
         messages={messages}
         currentUser={currentUser}
         isLoading={messagesLoading}
         isReceiverTyping={userTyping}
+        isGroupChat={isGroupChat}
       />
       <ChatInput
         message={message}

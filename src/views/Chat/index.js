@@ -12,7 +12,7 @@ import React, {useEffect, useState} from 'react';
 import BottomNav from '../../components/BottomNav';
 import {useGetChatQuery} from '../../redux/api/chatApiSlice';
 import {useNavigation} from '@react-navigation/native';
-import {formatLastSeen} from '../../utils';
+import {formatLastSeen, getGroupColor, getInitial} from '../../utils';
 import {getSocket, isUserOnline} from '../../socket';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import useTypedSelector from '../../hooks/useTypedSelector';
@@ -124,30 +124,66 @@ const ChatList = () => {
     };
   }, [socket]);
 
+  const renderEmptyList = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>No chats found</Text>
+    </View>
+  );
+
   const renderChat = ({item}) => {
-    const otherUser = item.users[0];
-    const isOnline = isUserOnline(otherUser._id);
+    const isGroupChat = item.isGroupChat;
+
+    // Handle avatar and user info based on chat type
+    const chatInfo = isGroupChat
+      ? {
+          name: item.chatName,
+          initial: getInitial(item.chatName),
+          avatar: null,
+        }
+      : {
+          name: item.users[0].username,
+          avatar: item.users[0].avatar,
+        };
+
+    // Get online status for direct chats only
+    const isOnline = !isGroupChat && isUserOnline(item.users[0]._id);
     const lastMessage = item.latestMessage;
-    // Only show unread count if the current user is NOT the sender of the last message
     const showUnreadCount =
       lastMessage?.sender?._id !== currentUser?.data?.user?._id &&
       item.unreadCount > 0;
 
     const handleChatPress = () => {
-      navigation.navigate('Chat', {userId: otherUser._id, chatId: item._id});
+      navigation.navigate('Chat', {
+        userId: isGroupChat ? null : item.users[0]._id,
+        chatId: item._id,
+        isGroupChat: item.isGroupChat,
+        chatName: item.chatName,
+      });
     };
 
     return (
       <TouchableOpacity style={styles.chatCard} onPress={handleChatPress}>
         <View style={styles.avatarContainer}>
-          <Image source={{uri: otherUser.avatar}} style={styles.avatar} />
+          {isGroupChat ? (
+            <View
+              style={[
+                styles.groupAvatar,
+                {backgroundColor: getGroupColor(chatInfo.name)},
+              ]}>
+              <Text style={styles.groupInitial}>{chatInfo.initial}</Text>
+            </View>
+          ) : (
+            <Image source={{uri: chatInfo.avatar}} style={styles.avatar} />
+          )}
           {isOnline && <View style={styles.onlineIndicator} />}
         </View>
         <View style={styles.chatInfo}>
           <View style={styles.topRow}>
-            <Text style={styles.username}>{otherUser.username}</Text>
+            <Text style={styles.username}>{chatInfo.name}</Text>
             <Text style={styles.timeStamp}>
-              {formatLastSeen(lastMessage?.createdAt)}
+              {lastMessage?.createdAt
+                ? formatLastSeen(lastMessage?.createdAt)
+                : ''}
             </Text>
           </View>
           <View style={styles.bottomRow}>
@@ -157,7 +193,15 @@ const ChatList = () => {
                   numberOfLines={1}
                   ellipsizeMode="tail"
                   style={styles.messageContainer}>
-                  {lastMessage?.sender?.username === otherUser?.username ? (
+                  {isGroupChat ? (
+                    <Text style={styles.lastMessage}>
+                      <Text style={styles.senderName}>
+                        {lastMessage.sender.username}:{' '}
+                      </Text>
+                      {lastMessage.content}
+                    </Text>
+                  ) : lastMessage?.sender?.username ===
+                    item.users[0]?.username ? (
                     <Text style={styles.lastMessage}>
                       {lastMessage.content}
                     </Text>
@@ -184,12 +228,6 @@ const ChatList = () => {
       </TouchableOpacity>
     );
   };
-
-  const renderEmptyList = () => (
-    <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>No chats found</Text>
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -359,6 +397,22 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     flex: 1,
+  },
+  groupAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  groupInitial: {
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  senderName: {
+    fontWeight: '500',
+    color: '#666',
   },
 });
 

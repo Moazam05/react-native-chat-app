@@ -26,3 +26,36 @@ export function formatLastSeen(lastSeen) {
     return `${day}/${month}/${year}`;
   }
 }
+
+export const getGroupColor = name => {
+  if (!name) {
+    return;
+  }
+
+  const colors = [
+    '#FF6B6B',
+    '#4ECDC4',
+    '#45B7D1',
+    '#96CEB4',
+    '#FFEEAD',
+    '#FF9F1C',
+    '#2AB7CA',
+    '#FED766',
+    '#7768AE',
+    '#82D173',
+  ];
+  const index = name?.length % colors?.length;
+  return colors[index];
+};
+
+export const getInitial = name => {
+  if (!name) {
+    return;
+  }
+  return name
+    ?.replace(
+      /[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2702-\u27B0]|[\uF680-\uF6C0]|[\u24C2-\uF251]/g,
+      '',
+    )
+    ?.trim()[0];
+};
