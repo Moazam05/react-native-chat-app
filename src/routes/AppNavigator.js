@@ -13,6 +13,7 @@ import SignUp from '../views/Auth/SignUp';
 import ChatList from '../views/Chat';
 import Profile from '../views/Profile';
 import CreateGroup from '../views/Chat/components/CreateGroup';
+import GroupInfo from '../views/Chat/components/GroupInfo';
 
 const Stack = createNativeStackNavigator();
 
@@ -72,6 +73,7 @@ const AppNavigator = () => {
         <Stack.Screen name="Chat" component={Chat} />
         <Stack.Screen name="Profile" component={Profile} />
         <Stack.Screen name="CreateGroup" component={CreateGroup} />
+        <Stack.Screen name="GroupInfo" component={GroupInfo} />
       </Stack.Navigator>
     </NavigationContainer>
   );

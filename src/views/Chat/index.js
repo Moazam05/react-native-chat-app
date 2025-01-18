@@ -152,6 +152,8 @@ const ChatList = () => {
       lastMessage?.sender?._id !== currentUser?.data?.user?._id &&
       item.unreadCount > 0;
 
+    console.log('item', item);
+
     const handleChatPress = () => {
       navigation.navigate('Chat', {
         userId: isGroupChat ? null : item.users[0]._id,
@@ -411,8 +413,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   senderName: {
-    fontWeight: '500',
     color: '#666',
+    fontSize: 12,
+    fontWeight: '500',
   },
 });
 
