@@ -7,10 +7,10 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {useNavigation} from '@react-navigation/native';
 
-import {getOnlineUsers, getSocket, isUserOnline} from '../../../socket';
+import {getSocket, isUserOnline} from '../../../socket';
 import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
 import useTypedSelector from '../../../hooks/useTypedSelector';
 import {selectedUser} from '../../../redux/auth/authSlice';
@@ -19,57 +19,47 @@ import Toast from 'react-native-toast-message';
 
 const Users = () => {
   const navigation = useNavigation();
-
   const currentUser = useTypedSelector(selectedUser);
-  // states
-  const [onlineUsers, setOnlineUsers] = useState(new Set());
-
-  // todo: Fetch all users API Call
   const {data, isLoading} = useGetAllUsersQuery({});
+  const [createChat] = useCreateChatMutation();
+  const [, forceUpdate] = useState({});
 
-  // todo: WebSocket
+  // Handle socket events for online status updates
   useEffect(() => {
     const socket = getSocket();
-
     if (socket) {
-      // Set initial online users
+      // Request initial online users
       socket.emit('get online users');
 
-      socket.on('user online', userId => {
-        setOnlineUsers(prev => new Set([...prev, userId]));
-      });
+      // Set up event listeners
+      const handleOnlineUpdate = () => {
+        forceUpdate({});
+      };
 
-      socket.on('user offline', userId => {
-        setOnlineUsers(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(userId);
-          return newSet;
-        });
-      });
-
-      // Optional: Handle initial online users list
-      socket.on('online users', users => {
-        setOnlineUsers(new Set(users));
-      });
+      socket.on('user online', handleOnlineUpdate);
+      socket.on('user offline', handleOnlineUpdate);
+      socket.on('online users', handleOnlineUpdate);
 
       return () => {
-        socket.off('user online');
-        socket.off('user offline');
-        socket.off('online users');
+        socket.off('user online', handleOnlineUpdate);
+        socket.off('user offline', handleOnlineUpdate);
+        socket.off('online users', handleOnlineUpdate);
       };
     }
   }, []);
 
-  // todo: Create Chat API Mutation
-  const [createChat] = useCreateChatMutation();
-
   const handleUserPress = async userId => {
     const socket = getSocket();
-    const payload = {
-      userId,
-    };
+    if (!socket?.connected) {
+      Toast.show({
+        type: 'error',
+        text2: 'Connection lost. Please try again.',
+      });
+      return;
+    }
+
     try {
-      const chat = await createChat(payload);
+      const chat = await createChat({userId});
 
       if (chat?.data?.status) {
         socket.emit('join chat', userId);
@@ -93,33 +83,37 @@ const Users = () => {
       });
     }
   };
-  const renderUser = ({item}) => {
-    if (item._id === currentUser?.data?.user?._id) {
-      return null;
-    }
 
-    const isOnline = isUserOnline(item._id);
+  const renderUser = useCallback(
+    ({item}) => {
+      if (item._id === currentUser?.data?.user?._id) {
+        return null;
+      }
 
-    return (
-      <TouchableOpacity
-        style={styles.userCard}
-        onPress={() => handleUserPress(item._id)}>
-        <View style={styles.avatarContainer}>
-          <Image source={{uri: item.avatar}} style={styles.avatar} />
-          {isOnline && <View style={styles.onlineIndicator} />}
-        </View>
-        <View style={styles.userInfo}>
-          <Text style={styles.username}>{item.username}</Text>
-          <Text style={styles.lastSeen}>{item.email}</Text>
-        </View>
+      const isOnline = isUserOnline(item._id);
+
+      return (
         <TouchableOpacity
-          style={styles.messageButton}
+          style={styles.userCard}
           onPress={() => handleUserPress(item._id)}>
-          <Text style={styles.messageText}>Message</Text>
+          <View style={styles.avatarContainer}>
+            <Image source={{uri: item.avatar}} style={styles.avatar} />
+            {isOnline && <View style={styles.onlineIndicator} />}
+          </View>
+          <View style={styles.userInfo}>
+            <Text style={styles.username}>{item.username}</Text>
+            <Text style={styles.lastSeen}>{item.email}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.messageButton}
+            onPress={() => handleUserPress(item._id)}>
+            <Text style={styles.messageText}>Message</Text>
+          </TouchableOpacity>
         </TouchableOpacity>
-      </TouchableOpacity>
-    );
-  };
+      );
+    },
+    [currentUser?.data?.user?._id],
+  );
 
   return (
     <View style={styles.wrap}>
@@ -133,6 +127,7 @@ const Users = () => {
           renderItem={renderUser}
           keyExtractor={item => item._id}
           showsVerticalScrollIndicator={false}
+          extraData={Date.now()}
         />
       )}
     </View>
