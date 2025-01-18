@@ -3,7 +3,7 @@ import {StyleSheet} from 'react-native';
 import {useRoute} from '@react-navigation/native';
 
 import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
-import {getSocket} from '../../../socket';
+import {getSocket, isUserOnline} from '../../../socket';
 import useTypedSelector from '../../../hooks/useTypedSelector';
 import {selectedUser} from '../../../redux/auth/authSlice';
 import {
@@ -26,9 +26,9 @@ const Chat = () => {
   // State management
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
-  const [isUserOnline, setIsUserOnline] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [userTyping, setUserTyping] = useState(false);
+  const [, forceUpdate] = useState({});
 
   // RTK Query hooks
   const {data: usersData} = useGetAllUsersQuery({});
@@ -49,18 +49,14 @@ const Chat = () => {
       // Join chat room
       socket.emit('join chat', chatId);
 
-      // Online status handling
-      socket.on('user online', onlineUserId => {
-        if (onlineUserId === userId) {
-          setIsUserOnline(true);
-        }
-      });
+      // Handle online status updates
+      const handleOnlineStatusChange = () => {
+        forceUpdate({}); // Force re-render when online status changes
+      };
 
-      socket.on('user offline', offlineUserId => {
-        if (offlineUserId === userId) {
-          setIsUserOnline(false);
-        }
-      });
+      socket.on('user online', handleOnlineStatusChange);
+      socket.on('user offline', handleOnlineStatusChange);
+      socket.on('online users', handleOnlineStatusChange);
 
       // Message and typing handlers
       socket.on('message received', newMessage => {
@@ -79,16 +75,17 @@ const Chat = () => {
       socket.on('typing', () => setUserTyping(true));
       socket.on('stop typing', () => setUserTyping(false));
 
-      // Initial status check
-      socket.emit('check user status', userId);
+      // Request online users list
+      socket.emit('get online users');
 
       // Cleanup listeners
       return () => {
         socket.off('message received');
         socket.off('typing');
         socket.off('stop typing');
-        socket.off('user online');
-        socket.off('user offline');
+        socket.off('user online', handleOnlineStatusChange);
+        socket.off('user offline', handleOnlineStatusChange);
+        socket.off('online users', handleOnlineStatusChange);
       };
     }
   }, [chatId, userId]);
@@ -184,7 +181,7 @@ const Chat = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ChatHeader chatUser={chatUser} isUserOnline={isUserOnline} />
+      <ChatHeader chatUser={chatUser} isUserOnline={isUserOnline(userId)} />
       <ChatMessages
         messages={messages}
         currentUser={currentUser}
