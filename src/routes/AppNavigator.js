@@ -3,7 +3,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {NavigationContainer} from '@react-navigation/native';
 import useTypedSelector from '../hooks/useTypedSelector';
 import {selectedUser} from '../redux/auth/authSlice';
-import {getSocket, initiateSocket} from '../socket';
+import {disconnectSocket, getSocket, initiateSocket} from '../socket';
 
 import Home from '../views/Home';
 import Login from '../views/Auth/Login';
@@ -19,16 +19,23 @@ const AppNavigator = () => {
   const currentUser = useTypedSelector(selectedUser);
 
   useEffect(() => {
+    let socketInstance = null;
+
     const setupSocketConnection = async () => {
       try {
         if (currentUser?.data?.user) {
-          const existingSocket = getSocket();
-          if (!existingSocket) {
+          const socket = getSocket();
+          if (!socket || !socket.connected) {
             console.log(
               'Initializing socket for user:',
               currentUser.data.user.username,
             );
-            initiateSocket(currentUser.data.user);
+            socketInstance = initiateSocket(currentUser.data.user);
+
+            // Request online users immediately after connection
+            socketInstance.on('connect', () => {
+              socketInstance.emit('get online users');
+            });
           }
         }
       } catch (error) {
@@ -38,15 +45,12 @@ const AppNavigator = () => {
 
     setupSocketConnection();
 
-    // Cleanup socket only when app is closed/background
     return () => {
-      const socket = getSocket();
-      if (socket) {
-        console.log('Disconnecting socket');
-        socket.disconnect();
+      if (socketInstance) {
+        disconnectSocket();
       }
     };
-  }, [currentUser?.data?.user?._id]); // Only re-run if user ID changes
+  }, [currentUser?.data?.user?._id]);
 
   return (
     <NavigationContainer>
