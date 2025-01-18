@@ -17,10 +17,13 @@ import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
 
 const CreateGroup = () => {
   const navigation = useNavigation();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
+  const [groupTitle, setGroupTitle] = useState('');
 
+  //   todo: GET ALL USERS API
   const {data, isLoading} = useGetAllUsersQuery({});
 
   // Filter users based on search query
@@ -141,19 +144,35 @@ const CreateGroup = () => {
           renderItem={renderUserItem}
           keyExtractor={item => item._id}
           contentContainerStyle={styles.listContainer}
+          ListEmptyComponent={
+            <View style={styles.loadingContainer}>
+              <Text>No users found</Text>
+            </View>
+          }
         />
       )}
 
+      <View style={styles.searchContainerTwo}>
+        <Icon
+          name="account-group"
+          size={20}
+          color="#666"
+          style={styles.searchIcon}
+        />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Group Title"
+          value={groupTitle}
+          onChangeText={setGroupTitle}
+        />
+      </View>
+
       {/* Create Group Button */}
-      {selectedUsers.length > 0 && (
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={handleCreateGroup}>
-          <Text style={styles.createButtonText}>
-            Create Group ({selectedUsers.length})
-          </Text>
-        </TouchableOpacity>
-      )}
+      {/* {selectedUsers.length > 0 && ( */}
+      <TouchableOpacity style={styles.createButton} onPress={handleCreateGroup}>
+        <Text style={styles.createButtonText}>Create Group</Text>
+      </TouchableOpacity>
+      {/* )} */}
     </SafeAreaView>
   );
 };
@@ -181,6 +200,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
   },
+  searchContainerTwo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginHorizontal: 16,
+  },
+
   searchIcon: {
     marginRight: 8,
   },
