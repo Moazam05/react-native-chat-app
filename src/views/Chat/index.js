@@ -13,7 +13,7 @@ import BottomNav from '../../components/BottomNav';
 import {useGetChatQuery} from '../../redux/api/chatApiSlice';
 import {useNavigation} from '@react-navigation/native';
 import {formatLastSeen} from '../../utils';
-import {getSocket} from '../../socket';
+import {getSocket, isUserOnline} from '../../socket';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import useTypedSelector from '../../hooks/useTypedSelector';
 import {selectedUser} from '../../redux/auth/authSlice';
@@ -24,6 +24,7 @@ const ChatList = () => {
   const currentUser = useTypedSelector(selectedUser);
 
   const [chats, setChats] = useState([]);
+  const [, forceUpdate] = useState({});
 
   // todo: GET USER ALL CHATS API
   const {
@@ -102,9 +103,29 @@ const ChatList = () => {
     };
   }, [socket, currentUser]);
 
+  useEffect(() => {
+    if (!socket) {
+      return;
+    }
+
+    const handleOnlineStatusChange = () => {
+      forceUpdate({}); // Force re-render when online status changes
+    };
+
+    socket.on('user online', handleOnlineStatusChange);
+    socket.on('user offline', handleOnlineStatusChange);
+    socket.on('online users', handleOnlineStatusChange);
+
+    return () => {
+      socket.off('user online', handleOnlineStatusChange);
+      socket.off('user offline', handleOnlineStatusChange);
+      socket.off('online users', handleOnlineStatusChange);
+    };
+  }, [socket]);
+
   const renderChat = ({item}) => {
     const otherUser = item.users[0];
-    const isOnline = otherUser.isOnline;
+    const isOnline = isUserOnline(otherUser._id);
     const lastMessage = item.latestMessage;
     // Only show unread count if the current user is NOT the sender of the last message
     const showUnreadCount =
@@ -187,6 +208,7 @@ const ChatList = () => {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={renderEmptyList}
           contentContainerStyle={styles.listContainer}
+          extraData={Date.now()}
         />
       )}
 
