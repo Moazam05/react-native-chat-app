@@ -1,6 +1,6 @@
 import React, {useEffect, useState, useRef} from 'react';
 import {StyleSheet} from 'react-native';
-import {useRoute} from '@react-navigation/native';
+import {useRoute, useIsFocused} from '@react-navigation/native';
 
 import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
 import {getSocket, isUserOnline} from '../../../socket';
@@ -21,7 +21,8 @@ const Chat = () => {
   const {userId, chatId} = route.params;
   const currentUser = useTypedSelector(selectedUser);
   const typingTimeoutRef = useRef(null);
-  const socket = getSocket(); // Get existing socket directly
+  const socket = getSocket();
+  const isFocused = useIsFocused();
 
   // State management
   const [message, setMessage] = useState('');
@@ -43,15 +44,27 @@ const Chat = () => {
   // Get chat user details
   const chatUser = usersData?.users?.find(user => user._id === userId);
 
+  // Handle screen focus/unfocus
+  useEffect(() => {
+    if (socket) {
+      if (isFocused) {
+        // Join chat room when screen is focused
+        console.log('Joining chat room:', chatId);
+        socket.emit('join chat', chatId);
+      } else {
+        // Leave chat room when screen is unfocused
+        console.log('Leaving chat room:', chatId);
+        socket.emit('leave chat', chatId);
+      }
+    }
+  }, [isFocused, chatId, socket]);
+
   // Socket listeners setup
   useEffect(() => {
     if (socket) {
-      // Join chat room
-      socket.emit('join chat', chatId);
-
       // Handle online status updates
       const handleOnlineStatusChange = () => {
-        forceUpdate({}); // Force re-render when online status changes
+        forceUpdate({});
       };
 
       socket.on('user online', handleOnlineStatusChange);
@@ -86,9 +99,14 @@ const Chat = () => {
         socket.off('user online', handleOnlineStatusChange);
         socket.off('user offline', handleOnlineStatusChange);
         socket.off('online users', handleOnlineStatusChange);
+
+        // Ensure we leave the room when component unmounts
+        socket.emit('leave chat', chatId);
       };
     }
   }, [chatId, userId]);
+
+  // Rest of the code remains the same...
 
   // Update messages when data changes
   useEffect(() => {
@@ -124,7 +142,6 @@ const Chat = () => {
     }
   };
 
-  // Send message handler
   const sendMessage = async () => {
     if (!message.trim() || !chatId) {
       return;
@@ -152,7 +169,6 @@ const Chat = () => {
     }
   };
 
-  // File upload handler - simplified error handling
   const handleFileUpload = async fileData => {
     if (!chatId) {
       return;
