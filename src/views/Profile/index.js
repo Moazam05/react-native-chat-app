@@ -21,6 +21,7 @@ import {selectedUser, setUser} from '../../redux/auth/authSlice';
 import {useUpdateUserMutation} from '../../redux/api/userApiSlice';
 import {useDispatch} from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {disconnectSocket} from '../../socket';
 
 const Profile = () => {
   const navigation = useNavigation();
@@ -140,8 +141,11 @@ const Profile = () => {
   };
 
   const handleLogout = () => {
-    // Implement logout logic
-    console.log('Logging out...');
+    disconnectSocket();
+
+    dispatch(setUser(null));
+    AsyncStorage.removeItem('user');
+    navigation.replace('Login');
   };
 
   return (
