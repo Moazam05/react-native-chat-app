@@ -99,14 +99,11 @@ const Chat = () => {
         socket.off('user online', handleOnlineStatusChange);
         socket.off('user offline', handleOnlineStatusChange);
         socket.off('online users', handleOnlineStatusChange);
-
         // Ensure we leave the room when component unmounts
         socket.emit('leave chat', chatId);
       };
     }
   }, [chatId, userId]);
-
-  // Rest of the code remains the same...
 
   // Update messages when data changes
   useEffect(() => {
