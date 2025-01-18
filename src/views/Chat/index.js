@@ -17,6 +17,7 @@ import {getSocket, isUserOnline} from '../../socket';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import useTypedSelector from '../../hooks/useTypedSelector';
 import {selectedUser} from '../../redux/auth/authSlice';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const ChatList = () => {
   const socket = getSocket();
@@ -194,6 +195,12 @@ const ChatList = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Chats</Text>
+        <TouchableOpacity
+          style={styles.groupButton}
+          onPress={() => navigation.navigate('CreateGroup')}>
+          <Icon name="account-group-outline" size={24} color="#444" />
+          <Text style={styles.groupButtonText}>New Group</Text>
+        </TouchableOpacity>
       </View>
 
       {isLoading ? (
@@ -224,10 +231,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header: {
-    padding: 16,
+    padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
+  groupButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  groupButtonText: {
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#444',
+  },
+
   headerTitle: {
     fontSize: 28,
     fontWeight: '600',
