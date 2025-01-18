@@ -14,6 +14,7 @@ import {useNavigation} from '@react-navigation/native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
+import Toast from 'react-native-toast-message';
 
 const CreateGroup = () => {
   const navigation = useNavigation();
@@ -47,10 +48,27 @@ const CreateGroup = () => {
   };
 
   const handleCreateGroup = () => {
-    if (selectedUsers.length > 0) {
-      console.log('Selected members for group:', selectedUsers);
-      // Here you can add your group creation logic
+    if (!groupTitle.trim()) {
+      Toast.show({
+        type: 'error',
+        text2: 'Please enter group title',
+      });
+      return;
     }
+
+    if (selectedUsers.length < 2) {
+      Toast.show({
+        type: 'error',
+        text2: 'Please select at least 2 members',
+      });
+      return;
+    }
+
+    // All good, proceed with group creation
+    console.log('Creating group:', {
+      title: groupTitle.trim(),
+      members: selectedUsers,
+    });
   };
 
   // Render selected users chips
@@ -152,6 +170,12 @@ const CreateGroup = () => {
         />
       )}
 
+      {selectedUsers.length > 0 && (
+        <View style={styles.members}>
+          <Text>{selectedUsers.length} members selected</Text>
+        </View>
+      )}
+
       <View style={styles.searchContainerTwo}>
         <Icon
           name="account-group"
@@ -167,12 +191,9 @@ const CreateGroup = () => {
         />
       </View>
 
-      {/* Create Group Button */}
-      {/* {selectedUsers.length > 0 && ( */}
       <TouchableOpacity style={styles.createButton} onPress={handleCreateGroup}>
         <Text style={styles.createButtonText}>Create Group</Text>
       </TouchableOpacity>
-      {/* )} */}
     </SafeAreaView>
   );
 };
@@ -199,6 +220,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
     paddingHorizontal: 12,
+  },
+  members: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    borderRadius: 8,
+    padding: 8,
+    marginHorizontal: 16,
   },
   searchContainerTwo: {
     flexDirection: 'row',
