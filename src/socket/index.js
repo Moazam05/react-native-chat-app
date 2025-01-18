@@ -4,9 +4,9 @@ import {ANDROID_SOCKET_URL, IOS_SOCKET_URL} from '@env';
 
 let socket;
 let appStateSubscription;
+let onlineUsers = new Set();
 
 export const initiateSocket = user => {
-  // Clean up existing socket and subscription
   if (socket) {
     socket.emit('user offline');
     socket.disconnect();
@@ -32,35 +32,36 @@ export const initiateSocket = user => {
   socket.on('connect', () => {
     console.log('Connected to socket server');
     socket.emit('setup', user);
-    // Request online users after setup
     socket.emit('get online users');
   });
 
-  socket.on('reconnect', () => {
-    console.log('Reconnected to socket server');
-    socket.emit('setup', user);
-    socket.emit('get online users');
+  // Add these handlers for online users
+  socket.on('user online', userId => {
+    // console.log('User online:', userId);
+    onlineUsers.add(userId);
+    // console.log('Current online users:', Array.from(onlineUsers));
   });
 
-  socket.on('connect_error', error => {
-    console.log('Socket connection error:', error);
+  socket.on('user offline', userId => {
+    // console.log('User offline:', userId);
+    onlineUsers.delete(userId);
+    // console.log('Current online users:', Array.from(onlineUsers));
   });
 
-  socket.on('disconnect', () => {
-    console.log('Socket disconnected');
+  socket.on('online users', users => {
+    // console.log('Received online users:', users);
+    onlineUsers = new Set(users);
+    // console.log('Updated online users:', Array.from(onlineUsers));
   });
 
-  // Handle app state changes with proper reference cleanup
   appStateSubscription = AppState.addEventListener('change', nextAppState => {
     if (nextAppState === 'active') {
-      // App came to foreground
       if (!socket.connected) {
         socket.connect();
         socket.emit('setup', user);
         socket.emit('get online users');
       }
     } else if (nextAppState === 'background' || nextAppState === 'inactive') {
-      // App went to background
       socket.emit('app background');
     }
   });
@@ -70,15 +71,13 @@ export const initiateSocket = user => {
 
 export const disconnectSocket = () => {
   if (socket) {
-    // Emit offline status before disconnecting
     socket.emit('user offline');
-    // Remove all listeners to prevent memory leaks
     socket.removeAllListeners();
     socket.disconnect();
     socket = null;
+    onlineUsers.clear();
   }
 
-  // Clean up AppState event listener
   if (appStateSubscription) {
     appStateSubscription.remove();
     appStateSubscription = null;
@@ -86,3 +85,4 @@ export const disconnectSocket = () => {
 };
 
 export const getSocket = () => socket;
+export const getOnlineUsers = () => Array.from(onlineUsers);
