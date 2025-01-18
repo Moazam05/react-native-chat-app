@@ -12,9 +12,10 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useNavigation} from '@react-navigation/native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
-import Toast from 'react-native-toast-message';
+import {useCreateGroupChatMutation} from '../../../redux/api/chatApiSlice';
 
 const CreateGroup = () => {
   const navigation = useNavigation();
@@ -47,7 +48,11 @@ const CreateGroup = () => {
     setSelectedUsers(selectedUsers.filter(user => user._id !== userId));
   };
 
-  const handleCreateGroup = () => {
+  // todo: CREATE GROUP API MUTATION
+  const [createGroupChat, {isLoading: isCreatingGroup}] =
+    useCreateGroupChatMutation();
+
+  const handleCreateGroup = async () => {
     if (!groupTitle.trim()) {
       Toast.show({
         type: 'error',
@@ -64,11 +69,35 @@ const CreateGroup = () => {
       return;
     }
 
-    // All good, proceed with group creation
-    console.log('Creating group:', {
-      title: groupTitle.trim(),
-      members: selectedUsers,
-    });
+    const payload = {
+      name: groupTitle.trim(),
+      users: selectedUsers.map(user => user._id),
+    };
+
+    try {
+      const group = await createGroupChat(payload);
+
+      if (group?.data?.status) {
+        Toast.show({
+          type: 'success',
+          text2: 'Group created successfully',
+        });
+        navigation.navigate('ChatList');
+      }
+
+      if (group?.error) {
+        Toast.show({
+          type: 'error',
+          text2: group?.error?.data?.message || 'Chat creation failed',
+        });
+      }
+    } catch (error) {
+      console.error('Create Chat Error:', error);
+      Toast.show({
+        type: 'error',
+        text2: 'Something went wrong',
+      });
+    }
   };
 
   // Render selected users chips
@@ -192,7 +221,11 @@ const CreateGroup = () => {
       </View>
 
       <TouchableOpacity style={styles.createButton} onPress={handleCreateGroup}>
-        <Text style={styles.createButtonText}>Create Group</Text>
+        {isCreatingGroup ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.createButtonText}>Create Group</Text>
+        )}
       </TouchableOpacity>
     </SafeAreaView>
   );
