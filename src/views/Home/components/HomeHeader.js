@@ -1,29 +1,29 @@
 import React from 'react';
 import {View, Text, TouchableOpacity, Image, StyleSheet} from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import useTypedSelector from '../../../hooks/useTypedSelector';
+import {selectedUser} from '../../../redux/auth/authSlice';
 
-const HomeHeader = ({
-  title = 'Contacts',
-  avatarUrl,
-  onAddPress,
-  onAvatarPress,
-}) => {
+const HomeHeader = ({avatarUrl, onAvatarPress}) => {
+  const currentUser = useTypedSelector(selectedUser);
+  const username = currentUser?.data?.user?.username || 'User';
+
   return (
     <View style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.leftSection}>
-          <TouchableOpacity style={styles.addButton} onPress={onAddPress}>
-            <Icon name="plus" size={28} color="#999" />
-          </TouchableOpacity>
+          <Text style={styles.appName}>ChatHive</Text>
+          <Text style={styles.username}>{username}</Text>
         </View>
-
-        <Text style={styles.title}>{title}</Text>
 
         <View style={styles.rightSection}>
           <TouchableOpacity
             style={styles.avatarContainer}
             onPress={onAvatarPress}>
-            <Image source={{uri: avatarUrl}} style={styles.avatar} />
+            <Image
+              source={{uri: avatarUrl}}
+              style={styles.avatar}
+              defaultSource={{uri: avatarUrl}}
+            />
             <View style={styles.onlineIndicator} />
           </TouchableOpacity>
         </View>
@@ -43,40 +43,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    height: 65,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
   leftSection: {
-    width: 40,
-  },
-  rightSection: {
-    width: 40,
-    alignItems: 'flex-end',
-  },
-  addButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-    textAlign: 'center',
     flex: 1,
   },
+  appName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FF9F0A',
+  },
+  username: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  rightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+
   avatarContainer: {
     position: 'relative',
     width: 40,
     height: 40,
   },
   avatar: {
-    width: 45,
-    height: 45,
-    borderRadius: 25,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f0f0f0',
   },
   onlineIndicator: {
     position: 'absolute',

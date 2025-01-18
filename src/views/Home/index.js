@@ -13,7 +13,6 @@ const Home = () => {
   const navigation = useNavigation();
   const currentUser = useTypedSelector(selectedUser);
 
-  const handleAddPress = () => {};
   const handleAvatarPress = () => {
     navigation.navigate('Profile');
   };
@@ -23,9 +22,7 @@ const Home = () => {
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
       <HomeHeader
-        title="Contacts"
         avatarUrl={currentUser?.data?.user?.avatar}
-        onAddPress={handleAddPress}
         onAvatarPress={handleAvatarPress}
       />
 

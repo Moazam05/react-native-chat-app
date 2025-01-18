@@ -3,12 +3,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {NavigationContainer} from '@react-navigation/native';
 import useTypedSelector from '../hooks/useTypedSelector';
 import {selectedUser} from '../redux/auth/authSlice';
-import {
-  disconnectSocket,
-  getOnlineUsers,
-  getSocket,
-  initiateSocket,
-} from '../socket';
+import {disconnectSocket, getSocket, initiateSocket} from '../socket';
 
 import Home from '../views/Home';
 import Login from '../views/Auth/Login';
