@@ -14,6 +14,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import RNFetchBlob from 'rn-fetch-blob';
 
@@ -223,38 +224,60 @@ const ChatMessages = ({
     const hasPermission = await checkAndRequestPermissions();
 
     if (!hasPermission) {
+      Toast.show({
+        type: 'error',
+        text2: 'Storage permission required to download images',
+      });
       return;
     }
 
     try {
-      Alert.alert('Downloading...', 'Please wait while the image downloads');
+      Toast.show({
+        type: 'info',
+        text2: 'Downloading image...',
+      });
 
-      const response = await RNFetchBlob.config({
+      const fileName = `ChatApp_${Date.now()}.jpg`;
+      const {config, fs} = RNFetchBlob;
+      const downloadPath = `${fs.dirs.DownloadDir}/${fileName}`;
+
+      const response = await config({
+        path: downloadPath,
         fileCache: true,
-        appendExt: 'jpg',
-        path: `${RNFetchBlob.fs.dirs.DownloadDir}/chat_image_${Date.now()}.jpg`,
         addAndroidDownloads: {
           useDownloadManager: true,
           notification: true,
-          title: 'Image Download',
+          path: downloadPath,
           description: 'Downloading image...',
+          title: fileName,
           mime: 'image/jpeg',
           mediaScannable: true,
         },
       }).fetch('GET', selectedImage);
 
+      Toast.hide();
+
       if (response.path()) {
-        Alert.alert(
-          'Success',
-          'Image downloaded successfully!\nCheck your downloads folder.',
-        );
+        // Check if file exists
+        const exists = await fs.exists(response.path());
+        if (exists) {
+          Toast.show({
+            type: 'success',
+            text2: 'Image saved to Downloads folder',
+          });
+          setSelectedImage(null); // Close image viewer
+        } else {
+          throw new Error('File not found after download');
+        }
       }
     } catch (error) {
       console.error('Download error:', error);
-      Alert.alert(
-        'Download Failed',
-        'Could not download the image. Please try again.',
-      );
+      Toast.hide();
+
+      Toast.show({
+        type: 'error',
+        text2: 'Download failed. Please try again.',
+      });
     }
   };
 
