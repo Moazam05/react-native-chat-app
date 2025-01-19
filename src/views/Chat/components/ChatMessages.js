@@ -118,6 +118,7 @@ const ChatMessages = ({
   currentUser,
   isReceiverTyping,
   isLoading,
+  isGroupChat,
   // onImagePress,
 }) => {
   const flatListRef = useRef(null);
@@ -322,15 +323,21 @@ const ChatMessages = ({
     };
 
     return (
-      <View
-        style={[
-          styles.messageContainer,
-          isSender ? styles.senderMessage : styles.receiverMessage,
-          item.messageType === 'image' && styles.imageMessageContainer,
-          item.messageType === 'document' && styles.documentMessageContainer,
-        ]}>
-        {renderContent()}
-        <MessageTime time={item.createdAt} isSender={isSender} />
+      <View>
+        {/* Show username for group chats when message is not from current user */}
+        {isGroupChat && !isSender && (
+          <Text style={styles.senderName}>{item.sender.username}</Text>
+        )}
+        <View
+          style={[
+            styles.messageContainer,
+            isSender ? styles.senderMessage : styles.receiverMessage,
+            item.messageType === 'image' && styles.imageMessageContainer,
+            item.messageType === 'document' && styles.documentMessageContainer,
+          ]}>
+          {renderContent()}
+          <MessageTime time={item.createdAt} isSender={isSender} />
+        </View>
       </View>
     );
   };
@@ -396,6 +403,12 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     marginBottom: 4,
+  },
+  senderName: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 8,
+    marginBottom: 2,
   },
   senderMessage: {
     alignSelf: 'flex-end',
