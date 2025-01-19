@@ -23,11 +23,43 @@ export const chatApiSlice = apiSlice.injectEndpoints({
       providesTags: ['Chats', 'Messages'],
     }),
 
+    // todo: Group CHAT
     createGroupChat: builder.mutation({
       query: data => {
         return {
           url: 'chats/group',
           method: 'POST',
+          body: data,
+        };
+      },
+      invalidatesTags: ['Chats'],
+    }),
+
+    groupInfo: builder.query({
+      query: id => {
+        return {
+          url: `chats/group/${id}`,
+          method: 'GET',
+        };
+      },
+    }),
+
+    addGroupMember: builder.mutation({
+      query: ({data, chatId}) => {
+        return {
+          url: `chats/group/${chatId}/add`,
+          method: 'POST',
+          body: data,
+        };
+      },
+      invalidatesTags: ['Chats'],
+    }),
+
+    removeGroupMember: builder.mutation({
+      query: ({data, chatId}) => {
+        return {
+          url: `chats/group/${chatId}`,
+          method: 'DELETE',
           body: data,
         };
       },
@@ -40,4 +72,7 @@ export const {
   useCreateChatMutation,
   useGetChatQuery,
   useCreateGroupChatMutation,
+  useGroupInfoQuery,
+  useAddGroupMemberMutation,
+  useRemoveGroupMemberMutation,
 } = chatApiSlice;

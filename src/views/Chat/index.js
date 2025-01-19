@@ -152,8 +152,6 @@ const ChatList = () => {
       lastMessage?.sender?._id !== currentUser?.data?.user?._id &&
       item.unreadCount > 0;
 
-    console.log('item', item);
-
     const handleChatPress = () => {
       navigation.navigate('Chat', {
         userId: isGroupChat ? null : item.users[0]._id,

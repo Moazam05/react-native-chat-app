@@ -1,9 +1,20 @@
-import {View, Text, StyleSheet, Image} from 'react-native';
+import {View, Text, StyleSheet, Image, TouchableOpacity} from 'react-native';
 import React from 'react';
-import {getGroupColor, getInitial} from '../../../utils';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const ChatHeader = ({chatUser, isUserOnline}) => {
+import {getGroupColor, getInitial} from '../../../utils';
+import {useNavigation} from '@react-navigation/native';
+
+const ChatHeader = ({chatUser, isUserOnline, chatId}) => {
+  const navigation = useNavigation();
+
   const isGroup = !chatUser?.avatar;
+
+  const handleGroupInfo = () => {
+    navigation.navigate('GroupInfo', {
+      chatId,
+    });
+  };
 
   return (
     <View style={styles.header}>
@@ -29,6 +40,14 @@ const ChatHeader = ({chatUser, isUserOnline}) => {
             </Text>
           )}
         </View>
+        {isGroup && (
+          <TouchableOpacity
+            style={styles.groupButton}
+            onPress={handleGroupInfo}>
+            <Icon name="information" size={24} color="#444" />
+            <Text style={styles.groupButtonText}>Group Info</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -76,6 +95,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 2,
+  },
+  groupButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 8,
+    borderRadius: 8,
+  },
+  groupButtonText: {
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#444',
   },
 });
 

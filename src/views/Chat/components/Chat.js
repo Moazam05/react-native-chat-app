@@ -205,6 +205,7 @@ const Chat = () => {
       <ChatHeader
         chatUser={chatUser}
         isUserOnline={!isGroupChat && isUserOnline(userId)}
+        chatId={chatId}
       />
       <ChatMessages
         messages={messages}
