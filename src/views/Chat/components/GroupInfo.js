@@ -6,7 +6,6 @@ import {
   FlatList,
   Image,
   TextInput,
-  Alert,
   Modal,
 } from 'react-native';
 import React, {useState} from 'react';
@@ -23,6 +22,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {getGroupColor, getInitial} from '../../../utils';
 import useTypedSelector from '../../../hooks/useTypedSelector';
 import {selectedUser} from '../../../redux/auth/authSlice';
+import Toast from 'react-native-toast-message';
 
 const GroupInfo = () => {
   const route = useRoute();
@@ -35,52 +35,107 @@ const GroupInfo = () => {
 
   // APIs
   const {data: groupInfo} = useGroupInfoQuery(chatId);
-  const [updateGroup] = useUpdateGroupChatMutation();
-  const [addToGroup] = useAddGroupMemberMutation();
-  const [removeFromGroup] = useRemoveGroupMemberMutation();
+  const [updateGroupChat] = useUpdateGroupChatMutation();
+  const [addGroupMember] = useAddGroupMemberMutation();
+  const [removeGroupMember] = useRemoveGroupMemberMutation();
   const {data: allUsers} = useGetAllUsersQuery({});
 
   const chat = groupInfo?.data?.chat;
   const isAdmin = chat?.groupAdmin?._id === currentUser?.data?.user?._id;
 
-  // Handle group name update
+  // Group name update function
   const handleUpdateName = async () => {
     if (!newGroupName.trim()) {
       return;
     }
+
     try {
-      await updateGroup({
+      const result = await updateGroupChat({
         chatId,
-        chatName: newGroupName.trim(),
-      }).unwrap();
-      setIsEditingName(false);
+        data: {
+          chatName: newGroupName.trim(),
+        },
+      });
+
+      if (result?.data?.status === 'success') {
+        Toast.show({
+          type: 'success',
+          text2: 'Group name updated successfully',
+        });
+        setIsEditingName(false);
+      } else if (result.error) {
+        Toast.show({
+          type: 'error',
+          text2: result.error.data?.message || 'Update failed',
+        });
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to update group name');
+      console.error('Update Chat failed', error);
+      Toast.show({
+        type: 'error',
+        text2: 'Something went wrong',
+      });
     }
   };
 
-  // Handle adding members
+  // Add member function
   const handleAddMember = async userId => {
     try {
-      await addToGroup({
+      const result = await addGroupMember({
         chatId,
-        userId,
-      }).unwrap();
-      setShowAddMembers(false);
+        data: {
+          userId,
+        },
+      });
+
+      if (result?.data?.status === 'success') {
+        Toast.show({
+          type: 'success',
+          text2: 'Member added successfully',
+        });
+        setShowAddMembers(false);
+      } else if (result.error) {
+        Toast.show({
+          type: 'error',
+          text2: result.error.data?.message || 'Failed to add member',
+        });
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to add member');
+      console.error('Add member failed', error);
+      Toast.show({
+        type: 'error',
+        text2: 'Failed to add member',
+      });
     }
   };
 
-  // Handle removing members
+  // Remove member function
   const handleRemoveMember = async userId => {
     try {
-      await removeFromGroup({
+      const result = await removeGroupMember({
         chatId,
-        userId,
-      }).unwrap();
+        data: {
+          userId,
+        },
+      });
+
+      if (result?.data?.status === 'success') {
+        Toast.show({
+          type: 'success',
+          text2: 'Member removed successfully',
+        });
+      } else if (result.error) {
+        Toast.show({
+          type: 'error',
+          text2: result.error.data?.message || 'Failed to remove member',
+        });
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to remove member');
+      console.error('Remove member failed', error);
+      Toast.show({
+        type: 'error',
+        text2: 'Failed to remove member',
+      });
     }
   };
 
