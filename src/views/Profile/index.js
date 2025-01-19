@@ -145,7 +145,10 @@ const Profile = () => {
 
     dispatch(setUser(null));
     AsyncStorage.removeItem('user');
-    navigation.replace('Login');
+    navigation.reset({
+      index: 0,
+      routes: [{name: 'Login'}],
+    });
   };
 
   return (

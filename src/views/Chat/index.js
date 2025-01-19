@@ -35,7 +35,6 @@ const ChatList = () => {
   } = useGetChatQuery({
     refetchOnMountOrArgChange: true,
   });
-
   // Add refetch on focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -161,6 +160,25 @@ const ChatList = () => {
       });
     };
 
+    const messageContent =
+      lastMessage?.messageType === 'image'
+        ? 'Photo'
+        : lastMessage?.messageType === 'document'
+        ? 'PDF'
+        : lastMessage?.content;
+
+    const messageIcon =
+      lastMessage?.messageType === 'image' ? (
+        <Icon name="image" size={16} color="#666" style={styles.messageIcon} />
+      ) : lastMessage?.messageType === 'document' ? (
+        <Icon
+          name="file-document"
+          size={16}
+          color="#666"
+          style={styles.messageIcon}
+        />
+      ) : null;
+
     return (
       <TouchableOpacity style={styles.chatCard} onPress={handleChatPress}>
         <View style={styles.avatarContainer}>
@@ -188,38 +206,39 @@ const ChatList = () => {
           </View>
           <View style={styles.bottomRow}>
             {lastMessage ? (
-              <>
-                <Text
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                  style={styles.messageContainer}>
+              <View style={styles.messageContainer}>
+                <View
+                  style={[
+                    styles.messageContent,
+                    {
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    },
+                  ]}>
                   {isGroupChat ? (
-                    <Text style={styles.lastMessage}>
-                      <Text style={styles.senderName}>
-                        {lastMessage.sender.username}:{' '}
-                      </Text>
-                      {lastMessage.content}
+                    <Text style={styles.senderName} numberOfLines={1}>
+                      {lastMessage.sender.username}:{' '}
                     </Text>
-                  ) : lastMessage?.sender?.username ===
+                  ) : lastMessage?.sender?.username !==
                     item.users[0]?.username ? (
-                    <Text style={styles.lastMessage}>
-                      {lastMessage.content}
+                    <Text style={styles.youText}>You: </Text>
+                  ) : null}
+
+                  {/* Message with icon */}
+                  <View style={styles.messageTextRow}>
+                    {messageIcon}
+                    <Text style={styles.lastMessage} numberOfLines={1}>
+                      {messageContent}
                     </Text>
-                  ) : (
-                    <>
-                      <Text style={styles.youText}>You: </Text>
-                      <Text style={styles.lastMessage}>
-                        {lastMessage.content}
-                      </Text>
-                    </>
-                  )}
-                </Text>
+                  </View>
+                </View>
+
                 {showUnreadCount && (
                   <View style={styles.unreadBadge}>
                     <Text style={styles.unreadCount}>{item.unreadCount}</Text>
                   </View>
                 )}
-              </>
+              </View>
             ) : (
               <Text style={styles.noMessage}>No messages yet</Text>
             )}
@@ -352,16 +371,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  lastMessage: {
-    fontSize: 14,
-    color: '#666',
-    flex: 1,
-  },
-  youText: {
-    fontSize: 12,
-    color: '#FF9134',
-    fontWeight: '500',
-  },
+
   noMessage: {
     fontSize: 14,
     color: '#999',
@@ -395,9 +405,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  messageContainer: {
-    flex: 1,
-  },
+
   groupAvatar: {
     width: 46,
     height: 46,
@@ -410,9 +418,34 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
   },
+
+  messageContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  messageContent: {
+    flex: 1,
+  },
+  messageTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  messageIcon: {
+    marginRight: 4,
+  },
+  lastMessage: {
+    fontSize: 14,
+    color: '#666',
+  },
   senderName: {
     color: '#666',
     fontSize: 12,
+    fontWeight: '500',
+  },
+  youText: {
+    fontSize: 12,
+    color: '#FF9134',
     fontWeight: '500',
   },
 });
