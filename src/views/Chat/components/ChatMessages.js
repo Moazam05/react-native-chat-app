@@ -141,6 +141,8 @@ const ChatMessages = ({
         style={[
           styles.messageContainer,
           isSender ? styles.senderMessage : styles.receiverMessage,
+          item.messageType === 'image' ? {padding: 6, borderRadius: 6} : {},
+          item.messageType === 'document' ? {padding: 4} : {},
         ]}>
         {renderContent()}
         <MessageTime time={item.createdAt} isSender={isSender} />
@@ -209,7 +211,7 @@ const styles = StyleSheet.create({
   },
   receiverMessage: {
     alignSelf: 'flex-start',
-    backgroundColor: '#E8E8E8',
+    backgroundColor: '#F5F5F5',
     borderBottomLeftRadius: 4,
   },
   messageText: {
@@ -223,8 +225,9 @@ const styles = StyleSheet.create({
   },
   messageImage: {
     width: 200,
-    height: 200,
-    borderRadius: 8,
+    height: 300,
+    borderRadius: 6,
+    resizeMode: 'cover',
   },
   documentContainer: {
     padding: 8,

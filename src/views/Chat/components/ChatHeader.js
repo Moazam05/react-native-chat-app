@@ -56,7 +56,7 @@ const ChatHeader = ({chatUser, isUserOnline, chatId}) => {
 const styles = StyleSheet.create({
   header: {
     backgroundColor: '#fff',
-    padding: 16,
+    padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
@@ -94,7 +94,6 @@ const styles = StyleSheet.create({
   status: {
     fontSize: 14,
     color: '#666',
-    marginTop: 2,
   },
   groupButton: {
     flexDirection: 'row',
