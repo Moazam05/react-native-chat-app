@@ -17,7 +17,7 @@ import {
 } from '../../../redux/api/chatApiSlice';
 import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useRoute} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {getGroupColor, getInitial} from '../../../utils';
 import useTypedSelector from '../../../hooks/useTypedSelector';
@@ -27,6 +27,8 @@ import Toast from 'react-native-toast-message';
 const GroupInfo = () => {
   const route = useRoute();
   const {chatId} = route.params;
+  const navigation = useNavigation();
+
   const currentUser = useTypedSelector(selectedUser);
   const [isEditingName, setIsEditingName] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
@@ -42,6 +44,16 @@ const GroupInfo = () => {
 
   const chat = groupInfo?.data?.chat;
   const isAdmin = chat?.groupAdmin?._id === currentUser?.data?.user?._id;
+
+  const redirectToChat = () => {
+    // navigation.navigate('Chat', {
+    //   userId: null,
+    //   chatId,
+    //   isGroupChat: true,
+    //   chatName: chat?.chatName,
+    // });
+    navigation.navigate('ChatList');
+  };
 
   // Group name update function
   const handleUpdateName = async () => {
@@ -63,6 +75,7 @@ const GroupInfo = () => {
           text2: 'Group name updated successfully',
         });
         setIsEditingName(false);
+        redirectToChat();
       } else if (result.error) {
         Toast.show({
           type: 'error',
@@ -94,6 +107,7 @@ const GroupInfo = () => {
           text2: 'Member added successfully',
         });
         setShowAddMembers(false);
+        redirectToChat();
       } else if (result.error) {
         Toast.show({
           type: 'error',
@@ -124,6 +138,7 @@ const GroupInfo = () => {
           type: 'success',
           text2: 'Member removed successfully',
         });
+        redirectToChat();
       } else if (result.error) {
         Toast.show({
           type: 'error',

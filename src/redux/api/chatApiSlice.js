@@ -53,6 +53,7 @@ export const chatApiSlice = apiSlice.injectEndpoints({
           method: 'GET',
         };
       },
+      providesTags: ['Chats'],
     }),
 
     addGroupMember: builder.mutation({
