@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#FF9F0A',
+    color: '#FF9134',
   },
   username: {
     fontSize: 14,

@@ -260,12 +260,12 @@ const styles = StyleSheet.create({
     marginTop: -12,
   },
   forgotPassword: {
-    color: '#FF9F0A',
+    color: '#FF9134',
     textAlign: 'right',
     fontSize: 14,
   },
   button: {
-    backgroundColor: '#FF9F0A',
+    backgroundColor: '#FF9134',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   signupLink: {
-    color: '#FF9F0A',
+    color: '#FF9134',
     fontSize: 14,
   },
 });

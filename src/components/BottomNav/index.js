@@ -19,7 +19,7 @@ const BottomNav = () => {
         <Icon
           name="account-multiple"
           size={24}
-          color={isHomeActive ? '#FF9F0A' : '#666'}
+          color={isHomeActive ? '#FF9134' : '#666'}
         />
         <Text style={[styles.navText, isHomeActive && styles.activeNavText]}>
           Contacts
@@ -31,7 +31,7 @@ const BottomNav = () => {
         <Icon
           name="message-outline"
           size={24}
-          color={isChatActive ? '#FF9F0A' : '#666'}
+          color={isChatActive ? '#FF9134' : '#666'}
         />
         <Text style={[styles.navText, isChatActive && styles.activeNavText]}>
           Chats
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   activeNavText: {
-    color: '#FF9F0A',
+    color: '#FF9134',
   },
 });
 

@@ -183,7 +183,7 @@ const CreateGroup = () => {
       {/* Users List */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF9F0A" />
+          <ActivityIndicator size="large" color="#FF9134" />
         </View>
       ) : (
         <FlatList
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   createButton: {
-    backgroundColor: '#FF9F0A',
+    backgroundColor: '#FF9134',
     margin: 16,
     padding: 16,
     borderRadius: 8,

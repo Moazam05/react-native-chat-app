@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   },
 
   button: {
-    backgroundColor: '#FF9F0A',
+    backgroundColor: '#FF9134',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   loginLink: {
-    color: '#FF9F0A',
+    color: '#FF9134',
     fontSize: 14,
   },
 });

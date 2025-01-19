@@ -119,7 +119,7 @@ const Users = () => {
     <View style={styles.wrap}>
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF9F0A" />
+          <ActivityIndicator size="large" color="#FF9134" />
         </View>
       ) : (
         <FlatList
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   messageText: {
-    color: '#FF9F0A',
+    color: '#FF9134',
     fontSize: 12,
     fontWeight: '500',
   },

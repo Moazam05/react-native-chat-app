@@ -57,13 +57,13 @@ const ChatInput = ({message, onChangeText, onSend, onFileUpload}) => {
         <TouchableOpacity
           onPress={handleImageSelection}
           style={styles.iconButton}>
-          <Icon name="image-outline" size={24} color="#007AFF" />
+          <Icon name="image-outline" size={24} color="#FF9134" />
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={handleDocumentSelection}
           style={styles.iconButton}>
-          <Icon name="document-outline" size={24} color="#007AFF" />
+          <Icon name="document-outline" size={24} color="#FF9134" />
         </TouchableOpacity>
 
         <TextInput
@@ -86,7 +86,7 @@ const ChatInput = ({message, onChangeText, onSend, onFileUpload}) => {
           <Icon
             name="send"
             size={24}
-            color={message.trim() ? '#007AFF' : '#999'}
+            color={message.trim() ? '#FF9134' : '#999'}
           />
         </TouchableOpacity>
       </View>

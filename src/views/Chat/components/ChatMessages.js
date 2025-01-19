@@ -152,7 +152,7 @@ const ChatMessages = ({
     if (isLoading) {
       return (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator color="#007AFF" />
+          <ActivityIndicator color="#FF9134" />
         </View>
       );
     }
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   },
   senderMessage: {
     alignSelf: 'flex-end',
-    backgroundColor: '#007AFF',
+    backgroundColor: '#FF9134',
     borderBottomRightRadius: 4,
   },
   receiverMessage: {

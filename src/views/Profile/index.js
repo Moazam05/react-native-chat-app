@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     bottom: 30,
-    backgroundColor: '#FF9F0A',
+    backgroundColor: '#FF9134',
     borderRadius: 20,
     padding: 6,
     elevation: 4,
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   updateButton: {
-    backgroundColor: '#FF9F0A',
+    backgroundColor: '#FF9134',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',

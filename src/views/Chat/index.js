@@ -243,7 +243,7 @@ const ChatList = () => {
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF9F0A" />
+          <ActivityIndicator size="large" color="#FF9134" />
         </View>
       ) : (
         <FlatList
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
   },
   youText: {
     fontSize: 12,
-    color: '#FF9F0A',
+    color: '#FF9134',
     fontWeight: '500',
   },
   noMessage: {
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     height: Platform.OS === 'ios' ? 88 : 76,
   },
   unreadBadge: {
-    backgroundColor: '#FF9F0A',
+    backgroundColor: '#FF9134',
     borderRadius: 12,
     minWidth: 24,
     height: 24,
