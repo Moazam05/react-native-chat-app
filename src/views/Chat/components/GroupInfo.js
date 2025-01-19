@@ -35,23 +35,17 @@ const GroupInfo = () => {
   const [showAddMembers, setShowAddMembers] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // APIs
+  // todo: APIs
   const {data: groupInfo} = useGroupInfoQuery(chatId);
   const [updateGroupChat] = useUpdateGroupChatMutation();
   const [addGroupMember] = useAddGroupMemberMutation();
   const [removeGroupMember] = useRemoveGroupMemberMutation();
-  const {data: allUsers} = useGetAllUsersQuery({});
+  const {data: allUsers, refetch} = useGetAllUsersQuery({});
 
   const chat = groupInfo?.data?.chat;
   const isAdmin = chat?.groupAdmin?._id === currentUser?.data?.user?._id;
 
   const redirectToChat = () => {
-    // navigation.navigate('Chat', {
-    //   userId: null,
-    //   chatId,
-    //   isGroupChat: true,
-    //   chatName: chat?.chatName,
-    // });
     navigation.navigate('ChatList');
   };
 
@@ -254,20 +248,40 @@ const GroupInfo = () => {
       <Modal visible={showAddMembers} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            {/* Modal Header */}
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Members</Text>
-              <TouchableOpacity onPress={() => setShowAddMembers(false)}>
-                <Icon name="close" size={24} color="#666" />
-              </TouchableOpacity>
+              <View style={styles.headerRight}>
+                <TouchableOpacity onPress={() => refetch()}>
+                  <Icon name="refresh" size={24} color="#666" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowAddMembers(false)}>
+                  <Icon name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search users"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
+            <Text style={styles.modalSubtitle}>
+              Click on a user to add them to the group
+            </Text>
 
+            {/* Search Input */}
+            <View style={styles.searchContainer}>
+              <Icon
+                name="magnify"
+                size={20}
+                color="#666"
+                style={styles.searchIcon}
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search users"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+
+            {/* Users List */}
             <FlatList
               data={filteredUsers}
               keyExtractor={item => item._id}
@@ -280,8 +294,16 @@ const GroupInfo = () => {
                     style={styles.memberAvatar}
                   />
                   <Text style={styles.memberName}>{item.username}</Text>
+                  <Icon name="plus-circle" size={24} color="#4CAF50" />
                 </TouchableOpacity>
               )}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>
+                    {searchQuery ? 'No users found' : 'No users available'}
+                  </Text>
+                </View>
+              }
             />
           </View>
         </View>
@@ -387,24 +409,44 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    height: '50%', // Takes half screen
     padding: 16,
-    maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    gap: 16,
+    alignItems: 'center',
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
   },
-  searchInput: {
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderRadius: 8,
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#666',
     marginBottom: 16,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
   },
   userItem: {
     flexDirection: 'row',
@@ -412,6 +454,15 @@ const styles = StyleSheet.create({
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+  },
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
 });
 
