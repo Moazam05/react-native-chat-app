@@ -35,6 +35,17 @@ export const chatApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: ['Chats'],
     }),
 
+    updateGroupChat: builder.mutation({
+      query: ({chatId, data}) => {
+        return {
+          url: `chats/group/${chatId}`,
+          method: 'PUT',
+          body: data,
+        };
+      },
+      invalidatesTags: ['Chats'],
+    }),
+
     groupInfo: builder.query({
       query: id => {
         return {
@@ -72,6 +83,7 @@ export const {
   useCreateChatMutation,
   useGetChatQuery,
   useCreateGroupChatMutation,
+  useUpdateGroupChatMutation,
   useGroupInfoQuery,
   useAddGroupMemberMutation,
   useRemoveGroupMemberMutation,
