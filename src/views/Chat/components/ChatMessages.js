@@ -12,6 +12,7 @@ import {
   Modal,
   PermissionsAndroid,
   Alert,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import RNFetchBlob from 'rn-fetch-blob';
@@ -125,32 +126,135 @@ const ChatMessages = ({
     setSelectedImage(imageUrl);
   };
 
-  const handleDownload = async () => {
-    try {
-      // For Android
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-      );
+  const checkAndRequestPermissions = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        // First check if we already have permission
+        let hasPermission = false;
 
-      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        const response = await fetch(selectedImage);
-        const blob = await response.blob();
-        const fileName = `chat_image_${Date.now()}.jpg`;
+        if (Platform.Version >= 33) {
+          // For Android 13+
+          const result = await PermissionsAndroid.check(
+            PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
+          );
+          hasPermission = result;
 
-        // Use RNFetchBlob or similar library to save file
-        // Example using RNFetchBlob:
-        const res = await RNFetchBlob.fs.writeFile(
-          RNFetchBlob.fs.dirs.DownloadDir + '/' + fileName,
-          blob,
-          'binary',
-        );
+          if (!hasPermission) {
+            const permission = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
+              {
+                title: 'Storage Permission Required',
+                message: 'Please allow access to save images',
+                buttonNeutral: 'Ask Me Later',
+                buttonNegative: 'Cancel',
+                buttonPositive: 'OK',
+              },
+            );
 
-        if (res) {
-          Alert.alert('Success', 'Image downloaded successfully!');
+            if (permission === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+              Alert.alert(
+                'Permission Required',
+                'Please enable storage permission in app settings to download images',
+                [
+                  {text: 'Cancel', style: 'cancel'},
+                  {
+                    text: 'Open Settings',
+                    onPress: () => {
+                      Linking.openSettings();
+                    },
+                  },
+                ],
+              );
+              return false;
+            }
+
+            return permission === PermissionsAndroid.RESULTS.GRANTED;
+          }
+        } else {
+          // For Android < 13
+          const result = await PermissionsAndroid.check(
+            PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+          );
+          hasPermission = result;
+
+          if (!hasPermission) {
+            const permission = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+              {
+                title: 'Storage Permission Required',
+                message: 'Please allow access to save images',
+                buttonNeutral: 'Ask Me Later',
+                buttonNegative: 'Cancel',
+                buttonPositive: 'OK',
+              },
+            );
+
+            if (permission === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+              Alert.alert(
+                'Permission Required',
+                'Please enable storage permission in app settings to download images',
+                [
+                  {text: 'Cancel', style: 'cancel'},
+                  {
+                    text: 'Open Settings',
+                    onPress: () => {
+                      Linking.openSettings();
+                    },
+                  },
+                ],
+              );
+              return false;
+            }
+
+            return permission === PermissionsAndroid.RESULTS.GRANTED;
+          }
         }
+
+        return hasPermission;
+      } catch (err) {
+        console.warn(err);
+        return false;
+      }
+    }
+    return true; // iOS doesn't need runtime permission
+  };
+
+  const handleDownload = async () => {
+    const hasPermission = await checkAndRequestPermissions();
+
+    if (!hasPermission) {
+      return;
+    }
+
+    try {
+      Alert.alert('Downloading...', 'Please wait while the image downloads');
+
+      const response = await RNFetchBlob.config({
+        fileCache: true,
+        appendExt: 'jpg',
+        path: `${RNFetchBlob.fs.dirs.DownloadDir}/chat_image_${Date.now()}.jpg`,
+        addAndroidDownloads: {
+          useDownloadManager: true,
+          notification: true,
+          title: 'Image Download',
+          description: 'Downloading image...',
+          mime: 'image/jpeg',
+          mediaScannable: true,
+        },
+      }).fetch('GET', selectedImage);
+
+      if (response.path()) {
+        Alert.alert(
+          'Success',
+          'Image downloaded successfully!\nCheck your downloads folder.',
+        );
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to download image');
+      console.error('Download error:', error);
+      Alert.alert(
+        'Download Failed',
+        'Could not download the image. Please try again.',
+      );
     }
   };
 
