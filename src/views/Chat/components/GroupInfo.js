@@ -199,18 +199,6 @@ const GroupInfo = () => {
         )}
       </View>
 
-      {/* Admin Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Admin</Text>
-        <View style={styles.memberItem}>
-          <Image
-            source={{uri: chat?.groupAdmin?.avatar}}
-            style={styles.memberAvatar}
-          />
-          <Text style={styles.memberName}>{chat?.groupAdmin?.username}</Text>
-        </View>
-      </View>
-
       {/* Members Section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -231,12 +219,19 @@ const GroupInfo = () => {
           renderItem={({item}) => (
             <View style={styles.memberItem}>
               <Image source={{uri: item.avatar}} style={styles.memberAvatar} />
-              <Text style={styles.memberName}>{item.username}</Text>
+              <View style={styles.memberInfo}>
+                <Text style={styles.memberName}>{item.username}</Text>
+                {item._id === chat?.groupAdmin?._id && (
+                  <View style={styles.adminChip}>
+                    <Text style={styles.adminChipText}>Group Admin</Text>
+                  </View>
+                )}
+              </View>
               {isAdmin && item._id !== chat?.groupAdmin?._id && (
                 <TouchableOpacity
                   onPress={() => handleRemoveMember(item._id)}
                   style={styles.removeButton}>
-                  <Icon name="account-remove" size={20} color="#ff4444" />
+                  <Icon name="account-remove" size={24} color="#ff4444" />
                 </TouchableOpacity>
               )}
             </View>
@@ -397,9 +392,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     flex: 1,
   },
-  removeButton: {
-    padding: 8,
-  },
+  removeButton: {},
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -463,6 +456,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+  },
+
+  memberInfo: {
+    flex: 1,
+    justifyContent: 'space-between',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  adminChip: {
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  adminChipText: {
+    color: '#1976D2',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+
+  addButton: {
+    padding: 8,
   },
 });
 
