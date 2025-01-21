@@ -148,7 +148,9 @@ const Chat = () => {
   };
 
   const sendMessage = async () => {
-    if (!message.trim() || !chatId) {
+    const messageContent = message.trim();
+
+    if (!messageContent || !chatId) {
       return;
     }
 
@@ -156,21 +158,31 @@ const Chat = () => {
       socket.emit('stop typing', chatId);
     }
 
+    // Store message content before clearing
+    const tempMessage = messageContent;
+
     try {
+      // Optimistically clear the input
+      setMessage('');
+
       const response = await createMessage({
         chatId,
-        content: message.trim(),
+        content: tempMessage,
         messageType: 'text',
       }).unwrap();
 
       if (response.status === 'success') {
         const newMessage = response.data.message;
         socket?.emit('new message', newMessage);
-        setMessage('');
         setIsTyping(false);
+      } else {
+        // If API call fails, restore the message
+        setMessage(tempMessage);
       }
     } catch (error) {
+      // If there's an error, restore the message
       console.error('Error sending message:', error);
+      setMessage(tempMessage);
     }
   };
 
