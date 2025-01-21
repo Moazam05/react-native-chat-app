@@ -9,43 +9,42 @@ import {
 } from 'react-native';
 import React, {useEffect, useState, useCallback} from 'react';
 import {useNavigation} from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
 
 import {getSocket, isUserOnline} from '../../../socket';
 import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
-import useTypedSelector from '../../../hooks/useTypedSelector';
-import {selectedUser} from '../../../redux/auth/authSlice';
 import {useCreateChatMutation} from '../../../redux/api/chatApiSlice';
-import Toast from 'react-native-toast-message';
 
 const Users = () => {
   const navigation = useNavigation();
-  const currentUser = useTypedSelector(selectedUser);
   const {data, isLoading} = useGetAllUsersQuery({});
   const [createChat] = useCreateChatMutation();
   const [, forceUpdate] = useState({});
 
+  console.log('Users:', data);
+
   // Handle socket events for online status updates
   useEffect(() => {
     const socket = getSocket();
-    if (socket) {
-      // Request initial online users
-      socket.emit('get online users');
-
-      // Set up event listeners
-      const handleOnlineUpdate = () => {
-        forceUpdate({});
-      };
-
-      socket.on('user online', handleOnlineUpdate);
-      socket.on('user offline', handleOnlineUpdate);
-      socket.on('online users', handleOnlineUpdate);
-
-      return () => {
-        socket.off('user online', handleOnlineUpdate);
-        socket.off('user offline', handleOnlineUpdate);
-        socket.off('online users', handleOnlineUpdate);
-      };
+    if (!socket) {
+      return;
     }
+
+    // Request initial online users
+    socket.emit('get online users');
+
+    // Set up event listeners
+    const handleOnlineUpdate = () => forceUpdate({});
+
+    socket.on('user online', handleOnlineUpdate);
+    socket.on('user offline', handleOnlineUpdate);
+    socket.on('online users', handleOnlineUpdate);
+
+    return () => {
+      socket.off('user online', handleOnlineUpdate);
+      socket.off('user offline', handleOnlineUpdate);
+      socket.off('online users', handleOnlineUpdate);
+    };
   }, []);
 
   const handleUserPress = async userId => {
@@ -59,20 +58,18 @@ const Users = () => {
     }
 
     try {
-      const chat = await createChat({userId});
+      const response = await createChat({userId});
 
-      if (chat?.data?.status) {
+      if (response?.data?.status) {
         socket.emit('join chat', userId);
         navigation.navigate('Chat', {
-          chatId: chat?.data?.data?.chat?._id,
+          chatId: response.data.data.chat._id,
           userId,
         });
-      }
-
-      if (chat?.error) {
+      } else {
         Toast.show({
           type: 'error',
-          text2: chat?.error?.data?.message || 'Chat creation failed',
+          text2: response?.error?.data?.message || 'Chat creation failed',
         });
       }
     } catch (error) {
@@ -84,52 +81,47 @@ const Users = () => {
     }
   };
 
-  const renderUser = useCallback(
-    ({item}) => {
-      if (item._id === currentUser?.data?.user?._id) {
-        return null;
-      }
+  const renderUser = useCallback(({item}) => {
+    const isOnline = isUserOnline(item._id);
 
-      const isOnline = isUserOnline(item._id);
-
-      return (
+    return (
+      <TouchableOpacity
+        style={styles.userCard}
+        onPress={() => handleUserPress(item._id)}>
+        <View style={styles.avatarContainer}>
+          <Image source={{uri: item.avatar}} style={styles.avatar} />
+          {isOnline && <View style={styles.onlineIndicator} />}
+        </View>
+        <View style={styles.userInfo}>
+          <Text style={styles.username}>{item.username}</Text>
+          <Text style={styles.lastSeen}>{item.email}</Text>
+        </View>
         <TouchableOpacity
-          style={styles.userCard}
+          style={styles.messageButton}
           onPress={() => handleUserPress(item._id)}>
-          <View style={styles.avatarContainer}>
-            <Image source={{uri: item.avatar}} style={styles.avatar} />
-            {isOnline && <View style={styles.onlineIndicator} />}
-          </View>
-          <View style={styles.userInfo}>
-            <Text style={styles.username}>{item.username}</Text>
-            <Text style={styles.lastSeen}>{item.email}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.messageButton}
-            onPress={() => handleUserPress(item._id)}>
-            <Text style={styles.messageText}>Message</Text>
-          </TouchableOpacity>
+          <Text style={styles.messageText}>Message</Text>
         </TouchableOpacity>
-      );
-    },
-    [currentUser?.data?.user?._id],
-  );
+      </TouchableOpacity>
+    );
+  }, []);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF9134" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.wrap}>
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF9134" />
-        </View>
-      ) : (
-        <FlatList
-          data={data?.users || []}
-          renderItem={renderUser}
-          keyExtractor={item => item._id}
-          showsVerticalScrollIndicator={false}
-          extraData={Date.now()}
-        />
-      )}
+      <FlatList
+        data={data?.users || []}
+        renderItem={renderUser}
+        keyExtractor={item => item._id}
+        showsVerticalScrollIndicator={false}
+        extraData={Date.now()} // For online status updates
+      />
     </View>
   );
 };

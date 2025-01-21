@@ -21,7 +21,7 @@ import {selectedUser, setUser} from '../../redux/auth/authSlice';
 import {useUpdateUserMutation} from '../../redux/api/userApiSlice';
 import {useDispatch} from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {disconnectSocket} from '../../socket';
+import {useLogoutMutation} from '../../redux/api/authApiSlice';
 
 const Profile = () => {
   const navigation = useNavigation();
@@ -140,15 +140,34 @@ const Profile = () => {
     }
   };
 
-  const handleLogout = () => {
-    disconnectSocket();
+  // todo: Logout User API Mutation
+  const [logoutUser, {isLoading: logoutLoading}] = useLogoutMutation();
 
-    dispatch(setUser(null));
-    AsyncStorage.removeItem('user');
-    navigation.reset({
-      index: 0,
-      routes: [{name: 'Splash'}],
-    });
+  const handleLogout = async () => {
+    try {
+      const user = await logoutUser();
+
+      if (user?.data?.status) {
+        dispatch(setUser(null));
+        AsyncStorage.removeItem('user');
+        navigation.reset({
+          index: 0,
+          routes: [{name: 'Splash'}],
+        });
+      }
+      if (user?.error) {
+        Toast.show({
+          type: 'error',
+          text2: user?.error?.data?.message || 'Logout failed',
+        });
+      }
+    } catch (error) {
+      console.error('Logout Error:', error);
+      Toast.show({
+        type: 'error',
+        text2: 'Something went wrong',
+      });
+    }
   };
 
   return (
@@ -223,7 +242,9 @@ const Profile = () => {
       {!isKeyboardVisible && (
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Icon name="logout" size={18} color="#fff" />
-          <Text style={styles.logoutText}>Logout</Text>
+          <Text style={styles.logoutText}>
+            {logoutLoading ? <ActivityIndicator color="#fff" /> : 'Logout'}
+          </Text>
         </TouchableOpacity>
       )}
     </SafeAreaView>
