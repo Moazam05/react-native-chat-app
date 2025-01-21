@@ -61,19 +61,42 @@ const AppNavigator = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Splash"
         screenOptions={{
           headerShown: false,
         }}>
         <Stack.Screen name="Splash" component={Splash} />
-        <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="SignUp" component={SignUp} />
-        <Stack.Screen name="Home" component={Home} />
-        <Stack.Screen name="ChatList" component={ChatList} />
-        <Stack.Screen name="Chat" component={Chat} />
-        <Stack.Screen name="Profile" component={Profile} />
-        <Stack.Screen name="CreateGroup" component={CreateGroup} />
-        <Stack.Screen name="GroupInfo" component={GroupInfo} />
+
+        {!currentUser?.token ? (
+          <>
+            <Stack.Screen
+              name="Login"
+              component={Login}
+              options={{
+                // Prevent going back to splash
+                gestureEnabled: false,
+                headerBackVisible: false,
+              }}
+            />
+            <Stack.Screen name="SignUp" component={SignUp} />
+          </>
+        ) : (
+          <>
+            <Stack.Screen
+              name="Home"
+              component={Home}
+              options={{
+                // Prevent going back to login
+                gestureEnabled: false,
+                headerBackVisible: false,
+              }}
+            />
+            <Stack.Screen name="ChatList" component={ChatList} />
+            <Stack.Screen name="Chat" component={Chat} />
+            <Stack.Screen name="Profile" component={Profile} />
+            <Stack.Screen name="CreateGroup" component={CreateGroup} />
+            <Stack.Screen name="GroupInfo" component={GroupInfo} />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

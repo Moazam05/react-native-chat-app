@@ -14,14 +14,17 @@ const Splash = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       handleNavigation();
-    }, 2500);
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, []);
 
   const handleNavigation = () => {
     const screen = isAuthenticated?.token ? 'Home' : 'Login';
-    navigation.replace(screen);
+    navigation.reset({
+      index: 0,
+      routes: [{name: screen}],
+    });
   };
 
   return (
