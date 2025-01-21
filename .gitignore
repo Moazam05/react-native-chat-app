@@ -34,8 +34,11 @@ local.properties
 *.keystore
 !debug.keystore
 
-# Firebase config files
+# Firebase config files (Android)
 android/app/google-services.json   
+
+# Firebase config files (iOS)
+ios/GoogleService-Info.plist
 
 # node.js
 #
