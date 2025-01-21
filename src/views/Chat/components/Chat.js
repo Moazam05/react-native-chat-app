@@ -96,9 +96,6 @@ const Chat = () => {
       socket.on('typing', () => setUserTyping(true));
       socket.on('stop typing', () => setUserTyping(false));
 
-      // Request online users list
-      socket.emit('get online users');
-
       // Cleanup listeners
       return () => {
         socket.off('message received');
