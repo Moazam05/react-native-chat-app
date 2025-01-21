@@ -54,7 +54,10 @@ const Login = () => {
       if (user?.data?.status) {
         dispatch(setUser(user?.data));
         await AsyncStorage.setItem('user', JSON.stringify(user?.data));
-        navigation.navigate('Home');
+        navigation.reset({
+          index: 0,
+          routes: [{name: 'Home'}],
+        });
       }
       if (user?.error) {
         Toast.show({
