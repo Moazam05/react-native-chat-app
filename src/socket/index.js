@@ -34,7 +34,6 @@ export const initiateSocket = user => {
   socket.on('connect', () => {
     console.log('Connected to socket server');
     socket.emit('setup', user);
-    socket.emit('get online users');
   });
 
   // Add these handlers for online users
@@ -61,7 +60,6 @@ export const initiateSocket = user => {
       if (!socket.connected) {
         socket.connect();
         socket.emit('setup', user);
-        socket.emit('get online users');
       }
     } else if (nextAppState === 'background' || nextAppState === 'inactive') {
       socket.emit('app background');

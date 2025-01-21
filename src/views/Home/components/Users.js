@@ -17,11 +17,9 @@ import {useCreateChatMutation} from '../../../redux/api/chatApiSlice';
 
 const Users = () => {
   const navigation = useNavigation();
-  const {data, isLoading} = useGetAllUsersQuery({});
+  const {data, isLoading, refetch} = useGetAllUsersQuery({});
   const [createChat] = useCreateChatMutation();
   const [, forceUpdate] = useState({});
-
-  console.log('Users:', data);
 
   // Handle socket events for online status updates
   useEffect(() => {
@@ -31,8 +29,7 @@ const Users = () => {
     }
 
     // Request initial online users
-    socket.emit('get online users');
-
+    refetch();
     // Set up event listeners
     const handleOnlineUpdate = () => forceUpdate({});
 
@@ -120,7 +117,6 @@ const Users = () => {
         renderItem={renderUser}
         keyExtractor={item => item._id}
         showsVerticalScrollIndicator={false}
-        extraData={Date.now()} // For online status updates
       />
     </View>
   );
