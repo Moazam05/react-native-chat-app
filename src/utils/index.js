@@ -1,3 +1,6 @@
+import {PermissionsAndroid, Platform} from 'react-native';
+import messaging from '@react-native-firebase/messaging';
+
 export function formatLastSeen(lastSeen) {
   const now = new Date();
   const lastSeenDate = new Date(lastSeen);
@@ -58,4 +61,31 @@ export const getInitial = name => {
       '',
     )
     ?.trim()[0];
+};
+
+export const requestUserPermission = async () => {
+  try {
+    if (Platform.OS === 'android') {
+      if (Platform.Version >= 33) {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+        );
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          console.log('Android Notification permission granted');
+          const token = await messaging().getToken();
+          console.log('Android FCM Token:', token);
+          return token;
+        } else {
+          console.log('Android Notification permission denied');
+        }
+      } else {
+        // For Android < 13, permissions are granted during installation
+        const token = await messaging().getToken();
+        console.log('Android FCM Token:', token);
+        return token;
+      }
+    }
+  } catch (error) {
+    console.log('Permission request error:', error);
+  }
 };

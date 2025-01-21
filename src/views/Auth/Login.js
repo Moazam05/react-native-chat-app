@@ -12,6 +12,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Keyboard,
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import {useDispatch} from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,11 +21,12 @@ import {useNavigation} from '@react-navigation/native';
 import {Formik} from 'formik';
 import * as Yup from 'yup';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Toast from 'react-native-toast-message';
 
 import {useLoginMutation} from '../../redux/api/authApiSlice';
 import {setUser} from '../../redux/auth/authSlice';
 import images from '../../constants/image';
-import Toast from 'react-native-toast-message';
+import {requestUserPermission} from '../../utils';
 
 const LoginSchema = Yup.object().shape({
   email: Yup.string()
@@ -43,13 +46,29 @@ const Login = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [fcmToken, setFcmToken] = useState('');
+
+  // In Login component
+  useEffect(() => {
+    const getFcmToken = async () => {
+      const token = await requestUserPermission();
+      if (token) {
+        setFcmToken(token);
+      }
+    };
+
+    getFcmToken();
+  }, []);
 
   // todo: LOGIN API MUTATION
   const [loginUser, {isLoading}] = useLoginMutation();
 
-  const handleLogin = async (values, {setSubmitting}) => {
+  const handleLogin = async values => {
     try {
-      const user = await loginUser(values);
+      // If fcmToken exists, include it in payload
+      const payload = fcmToken ? {...values, fcmToken} : values;
+
+      const user = await loginUser(payload);
 
       if (user?.data?.status) {
         dispatch(setUser(user?.data));
@@ -66,13 +85,11 @@ const Login = () => {
         });
       }
     } catch (error) {
-      console.error('Login Error:', error);
+      console.log('Login error:', error);
       Toast.show({
         type: 'error',
-        text2: 'Something went wrong',
+        text2: 'Login failed',
       });
-    } finally {
-      setSubmitting(false);
     }
   };
 
