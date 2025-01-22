@@ -2,7 +2,7 @@ import {ANDROID_API_URL} from '@env';
 import {useEffect} from 'react';
 import {Platform, PermissionsAndroid} from 'react-native';
 import messaging from '@react-native-firebase/messaging';
-
+import RNFS from 'react-native-fs';
 import notifee, {
   AndroidImportance,
   AndroidStyle,
@@ -11,6 +11,7 @@ import notifee, {
 import {useNavigation} from '@react-navigation/native';
 import useTypedSelector from '../hooks/useTypedSelector';
 import {selectedUser} from '../redux/auth/authSlice';
+import PhotoManipulator from 'react-native-photo-manipulator';
 
 const NotificationProvider = ({children}) => {
   const navigation = useNavigation();
@@ -46,6 +47,21 @@ const NotificationProvider = ({children}) => {
           JSON.parse(n.notification.data.chatData).chatId === chatData?.chatId,
       );
 
+      // Prepare largeIcon as a rounded image
+      let imageBitmap = null;
+      try {
+        const iconUri = remoteMessage.data?.senderAvatar;
+        const roundedIcon = await PhotoManipulator.round(iconUri, {
+          format: 'png',
+          quality: 1,
+          width: 128,
+          height: 128,
+        });
+        imageBitmap = await RNFS.readFile(roundedIcon.path, 'base64');
+      } catch (err) {
+        console.warn('Error processing senderAvatar:', err);
+      }
+
       if (existingNotification) {
         // Update existing notification with new message
         const oldMessages =
@@ -62,12 +78,16 @@ const NotificationProvider = ({children}) => {
           android: {
             channelId,
             smallIcon: 'ic_launcher',
-            largeIcon: remoteMessage.data?.senderAvatar,
+            largeIcon: imageBitmap
+              ? 'data:image/png;base64,' + imageBitmap
+              : 'ic_launcher',
             style: {
               type: AndroidStyle.MESSAGING,
               person: {
                 name: remoteMessage.notification?.title || 'User',
-                icon: remoteMessage.data?.senderAvatar,
+                icon: imageBitmap
+                  ? 'data:image/png;base64,' + imageBitmap
+                  : 'ic_launcher',
               },
               messages: [...oldMessages, newMessage],
             },
@@ -90,12 +110,16 @@ const NotificationProvider = ({children}) => {
           android: {
             channelId,
             smallIcon: 'ic_launcher',
-            largeIcon: remoteMessage.data?.senderAvatar,
+            largeIcon: imageBitmap
+              ? 'data:image/png;base64,' + imageBitmap
+              : 'ic_launcher',
             style: {
               type: AndroidStyle.MESSAGING,
               person: {
                 name: remoteMessage.notification?.title || 'User',
-                icon: remoteMessage.data?.senderAvatar,
+                icon: imageBitmap
+                  ? 'data:image/png;base64,' + imageBitmap
+                  : 'ic_launcher',
               },
               messages: [
                 {
@@ -127,12 +151,15 @@ const NotificationProvider = ({children}) => {
         );
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
           const token = await messaging().getToken();
-          // Here you would send this token to your backend
-          updateFcmToken(token);
+          if (currentUser?.token) {
+            updateFcmToken(token);
+          }
         }
       } else {
         const token = await messaging().getToken();
-        updateFcmToken(token);
+        if (currentUser?.token) {
+          updateFcmToken(token);
+        }
       }
     }
   };
@@ -159,7 +186,10 @@ const NotificationProvider = ({children}) => {
     requestUserPermission();
 
     // Handle foreground messages
-    const unsubscribeForeground = messaging().onMessage(handleNotification);
+    const unsubscribeForeground = messaging().onMessage(async remoteMessage => {
+      console.log('Foreground notification received:', remoteMessage);
+      await handleNotification(remoteMessage);
+    });
 
     // Handle background notification taps
     messaging().onNotificationOpenedApp(remoteMessage => {
@@ -175,7 +205,6 @@ const NotificationProvider = ({children}) => {
       .then(remoteMessage => {
         if (remoteMessage?.data?.chatData) {
           const chatData = JSON.parse(remoteMessage.data.chatData);
-          // Add slight delay to ensure navigation is ready
           setTimeout(() => {
             navigation.navigate('Chat', chatData);
           }, 1000);
@@ -184,7 +213,9 @@ const NotificationProvider = ({children}) => {
 
     // Handle FCM token refresh
     messaging().onTokenRefresh(token => {
-      updateFcmToken(token);
+      if (currentUser?.token) {
+        updateFcmToken(token);
+      }
     });
 
     return () => {
