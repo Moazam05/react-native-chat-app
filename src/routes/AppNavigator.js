@@ -14,10 +14,10 @@ import ChatList from '../views/Chat';
 import Profile from '../views/Profile';
 import CreateGroup from '../views/Chat/components/CreateGroup';
 import GroupInfo from '../views/Chat/components/GroupInfo';
-
+import NotificationProvider from '../firebase/NotificationProvider';
 const Stack = createNativeStackNavigator();
 
-const AppNavigator = () => {
+const MainStack = () => {
   const currentUser = useTypedSelector(selectedUser);
 
   useEffect(() => {
@@ -32,18 +32,9 @@ const AppNavigator = () => {
             );
             const socketInstance = initiateSocket(currentUser.data.user);
 
-            // Log online users whenever they change
-            socketInstance.on('user online', () => {
-              // console.log('AppNavigator - Online Users: 1', getOnlineUsers());
-            });
-
-            socketInstance.on('user offline', () => {
-              // console.log('AppNavigator - Online Users: 2', getOnlineUsers());
-            });
-
-            socketInstance.on('online users', () => {
-              // console.log('AppNavigator - Online Users: 3', getOnlineUsers());
-            });
+            socketInstance.on('user online', () => {});
+            socketInstance.on('user offline', () => {});
+            socketInstance.on('online users', () => {});
           }
         }
       } catch (error) {
@@ -59,45 +50,48 @@ const AppNavigator = () => {
   }, [currentUser?.data?.user?._id]);
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-        }}>
-        <Stack.Screen name="Splash" component={Splash} />
+    <Stack.Navigator screenOptions={{headerShown: false}}>
+      <Stack.Screen name="Splash" component={Splash} />
 
-        {!currentUser?.token ? (
-          <>
-            <Stack.Screen
-              name="Login"
-              component={Login}
-              options={{
-                // Prevent going back to splash
-                gestureEnabled: false,
-                headerBackVisible: false,
-              }}
-            />
-            <Stack.Screen name="SignUp" component={SignUp} />
-          </>
-        ) : (
-          <>
-            <Stack.Screen
-              name="Home"
-              component={Home}
-              options={{
-                // Prevent going back to login
-                gestureEnabled: false,
-                headerBackVisible: false,
-              }}
-            />
-            <Stack.Screen name="ChatList" component={ChatList} />
-            <Stack.Screen name="Chat" component={Chat} />
-            <Stack.Screen name="Profile" component={Profile} />
-            <Stack.Screen name="CreateGroup" component={CreateGroup} />
-            <Stack.Screen name="GroupInfo" component={GroupInfo} />
-          </>
-        )}
-      </Stack.Navigator>
+      {!currentUser?.token ? (
+        <>
+          <Stack.Screen
+            name="Login"
+            component={Login}
+            options={{
+              gestureEnabled: false,
+              headerBackVisible: false,
+            }}
+          />
+          <Stack.Screen name="SignUp" component={SignUp} />
+        </>
+      ) : (
+        <>
+          <Stack.Screen
+            name="Home"
+            component={Home}
+            options={{
+              gestureEnabled: false,
+              headerBackVisible: false,
+            }}
+          />
+          <Stack.Screen name="ChatList" component={ChatList} />
+          <Stack.Screen name="Chat" component={Chat} />
+          <Stack.Screen name="Profile" component={Profile} />
+          <Stack.Screen name="CreateGroup" component={CreateGroup} />
+          <Stack.Screen name="GroupInfo" component={GroupInfo} />
+        </>
+      )}
+    </Stack.Navigator>
+  );
+};
+
+const AppNavigator = () => {
+  return (
+    <NavigationContainer>
+      <NotificationProvider>
+        <MainStack />
+      </NotificationProvider>
     </NavigationContainer>
   );
 };
