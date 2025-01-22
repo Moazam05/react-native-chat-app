@@ -33,46 +33,87 @@ const NotificationProvider = ({children}) => {
 
   const handleNotification = async remoteMessage => {
     try {
-      // Create channel if it doesn't exist
       const channelId = 'chat_messages';
-
-      // Get chat data from the message
       const chatData = remoteMessage.data?.chatData
         ? JSON.parse(remoteMessage.data.chatData)
         : null;
 
-      await notifee.displayNotification({
-        title: remoteMessage.notification?.title,
-        body: remoteMessage.notification?.body,
-        data: chatData ? {chatData: JSON.stringify(chatData)} : {},
-        android: {
-          channelId,
-          smallIcon: 'ic_launcher',
-          largeIcon: remoteMessage.data?.senderAvatar || undefined,
-          style: {
-            type: AndroidStyle.MESSAGING,
-            person: {
-              name: remoteMessage.notification?.title || 'User',
-              icon: remoteMessage.data?.senderAvatar || undefined,
-            },
-            messages: [
-              {
-                text: remoteMessage.notification?.body || '',
-                timestamp: Date.now(),
+      // Get existing notifications for this chat
+      const notifications = await notifee.getDisplayedNotifications();
+      const existingNotification = notifications.find(
+        n =>
+          n.notification.data?.chatData &&
+          JSON.parse(n.notification.data.chatData).chatId === chatData?.chatId,
+      );
+
+      if (existingNotification) {
+        // Update existing notification with new message
+        const oldMessages =
+          existingNotification.notification.android.style.messages || [];
+        const newMessage = {
+          text: remoteMessage.notification?.body || '',
+          timestamp: Date.now(),
+        };
+
+        await notifee.displayNotification({
+          id: existingNotification.id,
+          title: remoteMessage.notification?.title,
+          data: chatData ? {chatData: JSON.stringify(chatData)} : {},
+          android: {
+            channelId,
+            smallIcon: 'ic_launcher',
+            largeIcon: remoteMessage.data?.senderAvatar,
+            style: {
+              type: AndroidStyle.MESSAGING,
+              person: {
+                name: remoteMessage.notification?.title || 'User',
+                icon: remoteMessage.data?.senderAvatar,
               },
-            ],
+              messages: [...oldMessages, newMessage],
+            },
+            groupId: chatData?.chatId,
+            groupSummary: true,
+            pressAction: {
+              id: 'default',
+              launchActivity: 'default',
+            },
+            importance: AndroidImportance.HIGH,
+            visibility: AndroidVisibility.PUBLIC,
           },
-          pressAction: {
-            id: 'default',
-            launchActivity: 'default',
+        });
+      } else {
+        // Create new notification
+        await notifee.displayNotification({
+          title: remoteMessage.notification?.title,
+          body: remoteMessage.notification?.body,
+          data: chatData ? {chatData: JSON.stringify(chatData)} : {},
+          android: {
+            channelId,
+            smallIcon: 'ic_launcher',
+            largeIcon: remoteMessage.data?.senderAvatar,
+            style: {
+              type: AndroidStyle.MESSAGING,
+              person: {
+                name: remoteMessage.notification?.title || 'User',
+                icon: remoteMessage.data?.senderAvatar,
+              },
+              messages: [
+                {
+                  text: remoteMessage.notification?.body || '',
+                  timestamp: Date.now(),
+                },
+              ],
+            },
+            groupId: chatData?.chatId,
+            pressAction: {
+              id: 'default',
+              launchActivity: 'default',
+            },
+            importance: AndroidImportance.HIGH,
+            visibility: AndroidVisibility.PUBLIC,
           },
-          sound: 'default',
-          lights: ['#FF9134', 300, 600],
-          vibrationPattern: [300, 500],
-          importance: AndroidImportance.HIGH,
-          visibility: AndroidVisibility.PUBLIC,
-        },
-      });
+        });
+      }
     } catch (error) {
       console.error('Error displaying notification:', error);
     }
