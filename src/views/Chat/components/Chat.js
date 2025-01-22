@@ -1,6 +1,7 @@
 import React, {useEffect, useState, useRef, useMemo} from 'react';
 import {StyleSheet} from 'react-native';
 import {useRoute, useIsFocused} from '@react-navigation/native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {useGetAllUsersQuery} from '../../../redux/api/userApiSlice';
 import {getSocket, isUserOnline} from '../../../socket';
@@ -14,7 +15,6 @@ import {
 import ChatHeader from './ChatHeader';
 import ChatInput from './ChatInput';
 import ChatMessages from './ChatMessages';
-import {SafeAreaView} from 'react-native-safe-area-context';
 
 const Chat = () => {
   const route = useRoute();
@@ -45,79 +45,108 @@ const Chat = () => {
     if (isGroupChat) {
       return {
         username: chatName,
-        avatar: null, // This will trigger group avatar display
+        avatar: null,
       };
     }
     const user = usersData?.users?.find(findUser => findUser._id === userId);
     return user || null;
   }, [isGroupChat, chatName, userId, usersData]);
 
-  // Handle screen focus/unfocus
+  // Handle screen focus/unfocus with debounce
   useEffect(() => {
-    if (socket) {
+    let timeoutId;
+    if (socket && chatId) {
       if (isFocused) {
-        // Join chat room when screen is focused
-        console.log('Joining chat room:', chatId);
-        socket.emit('join chat', chatId);
+        // Small delay to ensure proper sequence of events
+        timeoutId = setTimeout(() => {
+          console.log('Joining chat room:', chatId);
+          socket.emit('join chat', chatId);
+        }, 100);
       } else {
-        // Leave chat room when screen is unfocused
         console.log('Leaving chat room:', chatId);
         socket.emit('leave chat', chatId);
       }
     }
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [isFocused, chatId, socket]);
 
   // Socket listeners setup
   useEffect(() => {
-    if (socket) {
-      // Handle online status updates
-      const handleOnlineStatusChange = () => {
-        forceUpdate({});
-      };
-
-      socket.on('user online', handleOnlineStatusChange);
-      socket.on('user offline', handleOnlineStatusChange);
-      socket.on('online users', handleOnlineStatusChange);
-
-      // Message and typing handlers
-      socket.on('message received', newMessage => {
-        if (
-          newMessage.chatId === chatId &&
-          newMessage.sender !== currentUser.data.user._id
-        ) {
-          setMessages(prev =>
-            [...prev, newMessage].sort(
-              (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-            ),
-          );
-        }
-      });
-
-      socket.on('typing', () => setUserTyping(true));
-      socket.on('stop typing', () => setUserTyping(false));
-
-      // Cleanup listeners
-      return () => {
-        socket.off('message received');
-        socket.off('typing');
-        socket.off('stop typing');
-        socket.off('user online', handleOnlineStatusChange);
-        socket.off('user offline', handleOnlineStatusChange);
-        socket.off('online users', handleOnlineStatusChange);
-        // Ensure we leave the room when component unmounts
-        socket.emit('leave chat', chatId);
-      };
+    if (!socket) {
+      return;
     }
-  }, [chatId, userId]);
+
+    // Handle online status updates
+    const handleOnlineStatusChange = () => {
+      forceUpdate({});
+    };
+
+    // Message handler with proper sorting
+    const handleMessageReceived = newMessage => {
+      if (
+        newMessage.chatId === chatId &&
+        newMessage.sender._id !== currentUser.data.user._id
+      ) {
+        setMessages(prev => {
+          const updatedMessages = [...prev];
+          const existingIndex = updatedMessages.findIndex(
+            msg => msg._id === newMessage._id,
+          );
+
+          if (existingIndex === -1) {
+            updatedMessages.push(newMessage);
+          }
+
+          return updatedMessages.sort(
+            (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+          );
+        });
+      }
+    };
+
+    // Typing status handlers
+    const handleTypingStart = data => {
+      if (data.chatId === chatId) {
+        setUserTyping(true);
+      }
+    };
+
+    const handleTypingStop = data => {
+      if (data.chatId === chatId) {
+        setUserTyping(false);
+      }
+    };
+
+    // Set up event listeners
+    socket.on('user online', handleOnlineStatusChange);
+    socket.on('user offline', handleOnlineStatusChange);
+    socket.on('online users', handleOnlineStatusChange);
+    socket.on('message received', handleMessageReceived);
+    socket.on('typing', handleTypingStart);
+    socket.on('stop typing', handleTypingStop);
+
+    // Cleanup listeners
+    return () => {
+      socket.off('message received', handleMessageReceived);
+      socket.off('typing', handleTypingStart);
+      socket.off('stop typing', handleTypingStop);
+      socket.off('user online', handleOnlineStatusChange);
+      socket.off('user offline', handleOnlineStatusChange);
+      socket.off('online users', handleOnlineStatusChange);
+    };
+  }, [chatId, currentUser.data.user._id, socket]);
 
   // Update messages when data changes
   useEffect(() => {
     if (messagesData?.data?.messages) {
-      setMessages(
-        [...messagesData.data.messages].sort(
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-        ),
+      const sortedMessages = [...messagesData.data.messages].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
       );
+      setMessages(sortedMessages);
     }
   }, [messagesData]);
 
@@ -125,28 +154,29 @@ const Chat = () => {
   const handleTyping = text => {
     setMessage(text);
 
-    if (socket) {
-      if (!isTyping) {
-        setIsTyping(true);
-        socket.emit('typing', chatId);
-      }
-
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-
-      typingTimeoutRef.current = setTimeout(() => {
-        if (socket && isTyping) {
-          socket.emit('stop typing', chatId);
-          setIsTyping(false);
-        }
-      }, 3000);
+    if (!socket) {
+      return;
     }
+
+    if (!isTyping) {
+      setIsTyping(true);
+      socket.emit('typing', chatId);
+    }
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      if (socket && isTyping) {
+        socket.emit('stop typing', chatId);
+        setIsTyping(false);
+      }
+    }, 3000);
   };
 
   const sendMessage = async () => {
     const messageContent = message.trim();
-
     if (!messageContent || !chatId) {
       return;
     }
@@ -155,11 +185,8 @@ const Chat = () => {
       socket.emit('stop typing', chatId);
     }
 
-    // Store message content before clearing
     const tempMessage = messageContent;
-
     try {
-      // Optimistically clear the input
       setMessage('');
 
       const response = await createMessage({
@@ -171,13 +198,20 @@ const Chat = () => {
       if (response.status === 'success') {
         const newMessage = response.data.message;
         socket?.emit('new message', newMessage);
+
+        // Optimistically update messages
+        setMessages(prev => {
+          const updated = [...prev, newMessage].sort(
+            (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+          );
+          return updated;
+        });
+
         setIsTyping(false);
       } else {
-        // If API call fails, restore the message
         setMessage(tempMessage);
       }
     } catch (error) {
-      // If there's an error, restore the message
       console.error('Error sending message:', error);
       setMessage(tempMessage);
     }
