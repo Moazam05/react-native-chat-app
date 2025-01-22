@@ -12,8 +12,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Keyboard,
-  Platform,
-  PermissionsAndroid,
 } from 'react-native';
 import {useDispatch} from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
