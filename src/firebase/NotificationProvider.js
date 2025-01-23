@@ -53,10 +53,10 @@ const NotificationProvider = ({children}) => {
     createChannel();
     requestUserPermission();
 
-    // const unsubscribeForeground = messaging().onMessage(async remoteMessage => {
-    //   console.log('Foreground notification received:', remoteMessage);
-    //   await handleNotification(remoteMessage);
-    // });
+    const unsubscribeForeground = messaging().onMessage(async remoteMessage => {
+      console.log('Foreground notification received:', remoteMessage);
+      await handleNotification(remoteMessage);
+    });
 
     messaging().onNotificationOpenedApp(remoteMessage => {
       if (remoteMessage.data?.chatData) {
@@ -82,7 +82,7 @@ const NotificationProvider = ({children}) => {
 
     messaging().setBackgroundMessageHandler(handleNotification);
 
-    // return () => unsubscribeForeground();
+    return () => unsubscribeForeground();
   }, [navigation]);
 
   return children;
