@@ -13,6 +13,8 @@ import useTypedSelector from '../hooks/useTypedSelector';
 import {selectedUser} from '../redux/auth/authSlice';
 import PhotoManipulator from 'react-native-photo-manipulator';
 
+console.log('ANDROID_API_URL:', ANDROID_API_URL);
+
 const NotificationProvider = ({children}) => {
   const navigation = useNavigation();
   const currentUser = useTypedSelector(selectedUser);

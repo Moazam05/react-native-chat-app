@@ -2,7 +2,7 @@ import {Platform, AppState} from 'react-native';
 import io from 'socket.io-client';
 import {ANDROID_SOCKET_URL, IOS_SOCKET_URL} from '@env';
 
-console.log('ANDROID_SOCKET_URL 2', ANDROID_SOCKET_URL);
+console.log('SSS', ANDROID_SOCKET_URL);
 
 let socket;
 let appStateSubscription;

@@ -2,7 +2,7 @@ import {ANDROID_API_URL, IOS_API_URL} from '@env';
 import {Platform} from 'react-native';
 import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react';
 
-console.log('ANDROID_API_URL 2', ANDROID_API_URL);
+console.log('PP', ANDROID_API_URL);
 
 export const apiSlice = createApi({
   reducerPath: 'api',
