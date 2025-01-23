@@ -60,6 +60,19 @@ const NotificationProvider = ({children}) => {
         ? JSON.parse(remoteMessage.data.chatData)
         : null;
 
+      const isGroupChat = chatData?.isGroupChat;
+      const chatTitle = remoteMessage.notification?.title;
+
+      let avatarIcon;
+      if (isGroupChat) {
+        const initial = chatTitle?.charAt(0)?.toUpperCase() || 'G';
+        avatarIcon = await processAvatarImage(
+          `https://ui-avatars.com/api/?name=${initial}&background=4A90E2&color=fff&size=64`,
+        );
+      } else {
+        avatarIcon = await getLargeIcon(remoteMessage.data?.senderAvatar);
+      }
+
       const notifications = await notifee.getDisplayedNotifications();
       const existingNotification = notifications.find(
         n =>
@@ -67,23 +80,21 @@ const NotificationProvider = ({children}) => {
           JSON.parse(n.notification.data.chatData).chatId === chatData?.chatId,
       );
 
-      const imageBitmap = await getLargeIcon(remoteMessage.data?.senderAvatar);
-
       const baseNotification = {
-        title: remoteMessage.notification?.title,
+        title: chatTitle,
         data: chatData ? {chatData: JSON.stringify(chatData)} : {},
         android: {
           channelId,
           smallIcon: 'ic_launcher',
-          largeIcon: imageBitmap
-            ? 'data:image/png;base64,' + imageBitmap
+          largeIcon: avatarIcon
+            ? 'data:image/png;base64,' + avatarIcon
             : 'ic_launcher',
           style: {
             type: AndroidStyle.MESSAGING,
             person: {
-              name: remoteMessage.notification?.title || 'User',
-              icon: imageBitmap
-                ? 'data:image/png;base64,' + imageBitmap
+              name: chatTitle || 'User',
+              icon: avatarIcon
+                ? 'data:image/png;base64,' + avatarIcon
                 : 'ic_launcher',
             },
           },
@@ -174,7 +185,14 @@ const NotificationProvider = ({children}) => {
     messaging().onNotificationOpenedApp(remoteMessage => {
       if (remoteMessage.data?.chatData) {
         const chatData = JSON.parse(remoteMessage.data.chatData);
-        navigation.navigate('Chat', chatData);
+
+        const updateData = {
+          userId: chatData?.isGroupChat ? null : chatData?.userId,
+          chatId: chatData?.chatId,
+          isGroupChat: chatData?.isGroupChat,
+          chatName: chatData?.chatName,
+        };
+        navigation.navigate('Chat', updateData);
       }
     });
 
@@ -184,8 +202,15 @@ const NotificationProvider = ({children}) => {
       .then(remoteMessage => {
         if (remoteMessage?.data?.chatData) {
           const chatData = JSON.parse(remoteMessage.data.chatData);
+
+          const updateData = {
+            userId: chatData?.isGroupChat ? null : chatData?.userId,
+            chatId: chatData?.chatId,
+            isGroupChat: chatData?.isGroupChat,
+            chatName: chatData?.chatName,
+          };
           setTimeout(() => {
-            navigation.navigate('Chat', chatData);
+            navigation.navigate('Chat', updateData);
           }, 1000);
         }
       });
