@@ -2,6 +2,7 @@ import {ANDROID_API_URL} from '@env';
 import {useEffect} from 'react';
 import messaging from '@react-native-firebase/messaging';
 import {useNavigation} from '@react-navigation/native';
+
 import useTypedSelector from '../hooks/useTypedSelector';
 import {selectedUser} from '../redux/auth/authSlice';
 import {requestUserPermission} from '../utils';
@@ -80,11 +81,6 @@ const NotificationProvider = ({children}) => {
       if (currentUser?.token) {
         updateFcmToken(token);
       }
-    });
-
-    messaging().setBackgroundMessageHandler(async remoteMessage => {
-      console.log('Background notification received:', remoteMessage);
-      await handleNotification(remoteMessage);
     });
 
     return () => unsubscribeForeground();
