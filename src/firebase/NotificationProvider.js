@@ -11,9 +11,26 @@ import notifee, {
 import {useNavigation} from '@react-navigation/native';
 import useTypedSelector from '../hooks/useTypedSelector';
 import {selectedUser} from '../redux/auth/authSlice';
-import PhotoManipulator from 'react-native-photo-manipulator';
 
 console.log('ANDROID_API_URL:', ANDROID_API_URL);
+
+const processAvatarImage = async imageUrl => {
+  try {
+    const downloadPath = `${RNFS.CachesDirectoryPath}/temp_avatar.jpg`;
+
+    await RNFS.downloadFile({
+      fromUrl: imageUrl.replace('/upload/', '/upload/w_64,h_64,c_fill,g_face/'), // Use Cloudinary transformations
+      toFile: downloadPath,
+    }).promise;
+
+    const imageBitmap = await RNFS.readFile(downloadPath, 'base64');
+    await RNFS.unlink(downloadPath);
+    return imageBitmap;
+  } catch (err) {
+    console.error('Error processing avatar image:', err);
+    return null;
+  }
+};
 
 const NotificationProvider = ({children}) => {
   const navigation = useNavigation();
@@ -53,13 +70,9 @@ const NotificationProvider = ({children}) => {
       let imageBitmap = null;
       try {
         const iconUri = remoteMessage.data?.senderAvatar;
-        const roundedIcon = await PhotoManipulator.round(iconUri, {
-          format: 'png',
-          quality: 1,
-          width: 128,
-          height: 128,
-        });
-        imageBitmap = await RNFS.readFile(roundedIcon.path, 'base64');
+        if (iconUri) {
+          imageBitmap = await processAvatarImage(iconUri);
+        }
       } catch (err) {
         console.warn('Error processing senderAvatar:', err);
       }
