@@ -69,6 +69,8 @@ const NotificationProvider = ({children}) => {
       .getInitialNotification()
       .then(remoteMessage => {
         if (remoteMessage?.data?.chatData) {
+          console.log('Notification that launched the app:', remoteMessage);
+
           const chatData = JSON.parse(remoteMessage.data.chatData);
           setTimeout(() => navigateToChat(chatData), 1000);
         }
@@ -80,7 +82,10 @@ const NotificationProvider = ({children}) => {
       }
     });
 
-    messaging().setBackgroundMessageHandler(handleNotification);
+    messaging().setBackgroundMessageHandler(async remoteMessage => {
+      console.log('Background notification received:', remoteMessage);
+      await handleNotification(remoteMessage);
+    });
 
     return () => unsubscribeForeground();
   }, [navigation]);
