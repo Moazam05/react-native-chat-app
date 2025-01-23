@@ -1,6 +1,6 @@
 import {ANDROID_API_URL} from '@env';
 import {useEffect} from 'react';
-import {Platform, PermissionsAndroid} from 'react-native';
+import {Platform} from 'react-native';
 import messaging from '@react-native-firebase/messaging';
 import RNFS from 'react-native-fs';
 import notifee, {
@@ -9,8 +9,10 @@ import notifee, {
   AndroidVisibility,
 } from '@notifee/react-native';
 import {useNavigation} from '@react-navigation/native';
+
 import useTypedSelector from '../hooks/useTypedSelector';
 import {selectedUser} from '../redux/auth/authSlice';
+import {requestUserPermission} from '../utils';
 
 console.log('ANDROID_API_URL:', ANDROID_API_URL);
 
@@ -58,7 +60,6 @@ const NotificationProvider = ({children}) => {
         ? JSON.parse(remoteMessage.data.chatData)
         : null;
 
-      // Get existing notifications for this chat
       const notifications = await notifee.getDisplayedNotifications();
       const existingNotification = notifications.find(
         n =>
@@ -66,118 +67,81 @@ const NotificationProvider = ({children}) => {
           JSON.parse(n.notification.data.chatData).chatId === chatData?.chatId,
       );
 
-      // Prepare largeIcon as a rounded image
-      let imageBitmap = null;
-      try {
-        const iconUri = remoteMessage.data?.senderAvatar;
-        if (iconUri) {
-          imageBitmap = await processAvatarImage(iconUri);
-        }
-      } catch (err) {
-        console.warn('Error processing senderAvatar:', err);
-      }
+      const imageBitmap = await getLargeIcon(remoteMessage.data?.senderAvatar);
+
+      const baseNotification = {
+        title: remoteMessage.notification?.title,
+        data: chatData ? {chatData: JSON.stringify(chatData)} : {},
+        android: {
+          channelId,
+          smallIcon: 'ic_launcher',
+          largeIcon: imageBitmap
+            ? 'data:image/png;base64,' + imageBitmap
+            : 'ic_launcher',
+          style: {
+            type: AndroidStyle.MESSAGING,
+            person: {
+              name: remoteMessage.notification?.title || 'User',
+              icon: imageBitmap
+                ? 'data:image/png;base64,' + imageBitmap
+                : 'ic_launcher',
+            },
+          },
+          groupId: chatData?.chatId,
+          pressAction: {
+            id: 'default',
+            launchActivity: 'default',
+          },
+          importance: AndroidImportance.HIGH,
+          visibility: AndroidVisibility.PUBLIC,
+        },
+      };
 
       if (existingNotification) {
-        // Update existing notification with new message
-        const oldMessages =
-          existingNotification.notification.android.style.messages || [];
-        const newMessage = {
-          text: remoteMessage.notification?.body || '',
-          timestamp: Date.now(),
-        };
-
-        await notifee.displayNotification({
-          id: existingNotification.id,
-          title: remoteMessage.notification?.title,
-          data: chatData ? {chatData: JSON.stringify(chatData)} : {},
-          android: {
-            channelId,
-            smallIcon: 'ic_launcher',
-            largeIcon: imageBitmap
-              ? 'data:image/png;base64,' + imageBitmap
-              : 'ic_launcher',
-            style: {
-              type: AndroidStyle.MESSAGING,
-              person: {
-                name: remoteMessage.notification?.title || 'User',
-                icon: imageBitmap
-                  ? 'data:image/png;base64,' + imageBitmap
-                  : 'ic_launcher',
-              },
-              messages: [...oldMessages, newMessage],
-            },
-            groupId: chatData?.chatId,
-            groupSummary: true,
-            pressAction: {
-              id: 'default',
-              launchActivity: 'default',
-            },
-            importance: AndroidImportance.HIGH,
-            visibility: AndroidVisibility.PUBLIC,
+        baseNotification.id = existingNotification.id;
+        baseNotification.android.style.messages = [
+          ...(existingNotification.notification.android.style.messages || []),
+          {
+            text: remoteMessage.notification?.body || '',
+            timestamp: Date.now(),
           },
-        });
+        ];
+        baseNotification.android.groupSummary = true;
       } else {
-        // Create new notification
-        await notifee.displayNotification({
-          title: remoteMessage.notification?.title,
-          body: remoteMessage.notification?.body,
-          data: chatData ? {chatData: JSON.stringify(chatData)} : {},
-          android: {
-            channelId,
-            smallIcon: 'ic_launcher',
-            largeIcon: imageBitmap
-              ? 'data:image/png;base64,' + imageBitmap
-              : 'ic_launcher',
-            style: {
-              type: AndroidStyle.MESSAGING,
-              person: {
-                name: remoteMessage.notification?.title || 'User',
-                icon: imageBitmap
-                  ? 'data:image/png;base64,' + imageBitmap
-                  : 'ic_launcher',
-              },
-              messages: [
-                {
-                  text: remoteMessage.notification?.body || '',
-                  timestamp: Date.now(),
-                },
-              ],
-            },
-            groupId: chatData?.chatId,
-            pressAction: {
-              id: 'default',
-              launchActivity: 'default',
-            },
-            importance: AndroidImportance.HIGH,
-            visibility: AndroidVisibility.PUBLIC,
+        baseNotification.body = remoteMessage.notification?.body;
+        baseNotification.android.style.messages = [
+          {
+            text: remoteMessage.notification?.body || '',
+            timestamp: Date.now(),
           },
-        });
+        ];
       }
+
+      await notifee.displayNotification(baseNotification);
     } catch (error) {
       console.error('Error displaying notification:', error);
     }
   };
 
-  const requestUserPermission = async () => {
-    if (Platform.OS === 'android') {
-      if (Platform.Version >= 33) {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-        );
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          const token = await messaging().getToken();
-          if (currentUser?.token) {
-            updateFcmToken(token);
-          }
-        }
-      } else {
-        const token = await messaging().getToken();
-        if (currentUser?.token) {
-          updateFcmToken(token);
-        }
-      }
+  const getLargeIcon = async iconUri => {
+    try {
+      return iconUri ? await processAvatarImage(iconUri) : null;
+    } catch (err) {
+      console.warn('Error processing senderAvatar:', err);
+      return null;
     }
   };
+
+  useEffect(() => {
+    const getFcmToken = async () => {
+      const token = await requestUserPermission();
+      if (token) {
+        updateFcmToken(token);
+      }
+    };
+
+    getFcmToken();
+  }, []);
 
   const updateFcmToken = async token => {
     try {
