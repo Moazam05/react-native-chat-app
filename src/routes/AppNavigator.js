@@ -1,9 +1,10 @@
 import React, {useEffect} from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {NavigationContainer} from '@react-navigation/native';
+import {NavigationContainer, useNavigation} from '@react-navigation/native';
 import useTypedSelector from '../hooks/useTypedSelector';
 import {selectedUser} from '../redux/auth/authSlice';
 import {disconnectSocket, getSocket, initiateSocket} from '../socket';
+import {getQuitStateNavigation} from '../firebase/NotificationHandlers';
 
 import Home from '../views/Home';
 import Login from '../views/Auth/Login';
@@ -15,10 +16,39 @@ import Profile from '../views/Profile';
 import CreateGroup from '../views/Chat/components/CreateGroup';
 import GroupInfo from '../views/Chat/components/GroupInfo';
 import NotificationProvider from '../firebase/NotificationProvider';
+
 const Stack = createNativeStackNavigator();
 
 const MainStack = () => {
   const currentUser = useTypedSelector(selectedUser);
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    let timer;
+    const handleQuitStateNavigation = async () => {
+      if (currentUser?.token) {
+        const chatData = getQuitStateNavigation();
+        if (chatData) {
+          // Wait for Home screen to be fully loaded
+          timer = setTimeout(() => {
+            navigation.navigate('Chat', {
+              userId: chatData.isGroupChat ? null : chatData.userId,
+              chatId: chatData.chatId,
+              isGroupChat: chatData.isGroupChat,
+              chatName: chatData.chatName,
+            });
+          }, 3000); // Wait for Splash -> Home transition
+        }
+      }
+    };
+
+    handleQuitStateNavigation();
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [currentUser?.token]);
 
   useEffect(() => {
     const setupSocketConnection = async () => {

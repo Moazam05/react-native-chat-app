@@ -1,14 +1,30 @@
 import notifee, {AndroidStyle} from '@notifee/react-native';
 import {processAvatarImage} from './NotificationService';
+import {store} from '../redux/store';
+
+let quitStateNavigationData = null;
+
+export const setQuitStateNavigation = data => {
+  quitStateNavigationData = data;
+};
+
+export const getQuitStateNavigation = () => {
+  const data = quitStateNavigationData;
+  quitStateNavigationData = null;
+  return data;
+};
 
 export const handleNotification = async remoteMessage => {
   try {
     const channelId = 'chat_messages';
-
-    // Parse chatData from the payload, with a fallback to null
     const chatData = remoteMessage.data?.chatData
       ? JSON.parse(remoteMessage.data.chatData)
       : null;
+
+    // Store for quit state navigation only if app is not authenticated
+    if (!store.getState().auth?.token && chatData) {
+      setQuitStateNavigation(chatData);
+    }
 
     const isGroupChat = chatData?.isGroupChat || false;
     const chatTitle =
@@ -16,17 +32,13 @@ export const handleNotification = async remoteMessage => {
       remoteMessage.notification?.title ||
       'Unknown Sender';
 
-    // Fetch existing notifications
     const notifications = await notifee.getDisplayedNotifications();
-
-    // Find existing notification by userId
     const existingNotification = notifications.find(
       n =>
         n.notification.data?.chatData &&
         JSON.parse(n.notification.data.chatData).userId === chatData?.userId,
     );
 
-    // Determine avatar icon based on chat type
     let avatarIcon = isGroupChat
       ? await processAvatarImage(
           `https://ui-avatars.com/api/?name=${chatTitle
@@ -38,7 +50,6 @@ export const handleNotification = async remoteMessage => {
       : null;
 
     if (existingNotification) {
-      // Append to existing messages
       const existingMessages =
         existingNotification.notification.android.style.messages || [];
 
@@ -78,7 +89,6 @@ export const handleNotification = async remoteMessage => {
         },
       });
     } else {
-      // Display new notification
       await notifee.displayNotification({
         title: chatTitle,
         data: chatData ? {chatData: JSON.stringify(chatData)} : {},
