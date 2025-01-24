@@ -37,7 +37,7 @@ const MainStack = () => {
               isGroupChat: chatData.isGroupChat,
               chatName: chatData.chatName,
             });
-          }, 3000); // Wait for Splash -> Home transition
+          }, 1500); // Wait for Splash -> Home transition
         }
       }
     };
