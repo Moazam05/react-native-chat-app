@@ -46,8 +46,7 @@ export const showLoginNotification = async () => {
     id: 'login_status',
     name: 'Login Status',
     sound: 'default',
-    importance: AndroidImportance.HIGH,
-    visibility: AndroidVisibility.PUBLIC,
+    importance: AndroidImportance.DEFAULT,
     vibration: true,
     lights: true,
   });
@@ -61,6 +60,7 @@ export const showLoginNotification = async () => {
     body: notificationText,
     android: {
       channelId,
+      importance: AndroidImportance.DEFAULT,
       largeIcon: 'ic_launcher',
       style: {
         type: AndroidStyle.BIGTEXT,
