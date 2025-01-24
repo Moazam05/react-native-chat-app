@@ -61,6 +61,15 @@ const NotificationProvider = ({children}) => {
         }
       });
 
+      // Background press handler
+      notifee.onBackgroundEvent(async ({type, detail}) => {
+        if (type === EventType.PRESS && detail.notification?.data?.chatData) {
+          const chatData = JSON.parse(detail.notification.data.chatData);
+          navigateToChat(chatData);
+          return Promise.resolve();
+        }
+      });
+
       return () => unsubscribeForeground();
     };
 
