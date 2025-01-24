@@ -25,6 +25,7 @@ import {useLoginMutation} from '../../redux/api/authApiSlice';
 import {setUser} from '../../redux/auth/authSlice';
 import images from '../../constants/image';
 import {requestUserPermission} from '../../utils';
+import {showLoginNotification} from '../../firebase/NotificationService';
 
 const LoginSchema = Yup.object().shape({
   email: Yup.string()
@@ -71,6 +72,7 @@ const Login = () => {
       if (user?.data?.status) {
         dispatch(setUser(user?.data));
         await AsyncStorage.setItem('user', JSON.stringify(user?.data));
+        await showLoginNotification();
         navigation.reset({
           index: 0,
           routes: [{name: 'Home'}],

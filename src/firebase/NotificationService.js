@@ -2,6 +2,7 @@ import {Platform} from 'react-native';
 import RNFS from 'react-native-fs';
 import notifee, {
   AndroidImportance,
+  AndroidStyle,
   AndroidVisibility,
 } from '@notifee/react-native';
 
@@ -38,4 +39,48 @@ export const createChannel = async () => {
       lights: true,
     });
   }
+};
+
+export const showLoginNotification = async () => {
+  const channelId = await notifee.createChannel({
+    id: 'login_status',
+    name: 'Login Status',
+    sound: 'default',
+    importance: AndroidImportance.HIGH,
+    visibility: AndroidVisibility.PUBLIC,
+    vibration: true,
+    lights: true,
+  });
+
+  const notificationText =
+    'Dear User, you have successfully logged in to ChatApp. Your account security is our top priority.';
+
+  await notifee.displayNotification({
+    id: 'login_alert',
+    title: 'ChatApp - Login Alert',
+    body: notificationText,
+    android: {
+      channelId,
+      largeIcon: 'ic_launcher',
+      style: {
+        type: AndroidStyle.BIGTEXT,
+        text: notificationText,
+      },
+      timestamp: Date.now(),
+      showTimestamp: true,
+      pressAction: {
+        id: 'default',
+      },
+      lightUpScreen: true,
+    },
+    ios: {
+      categoryId: 'alert',
+      foregroundPresentationOptions: {
+        badge: true,
+        sound: true,
+        banner: true,
+        list: true,
+      },
+    },
+  });
 };

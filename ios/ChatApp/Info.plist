@@ -59,6 +59,12 @@
 	<string>Fontisto.ttf</string>
 	</array>
 	<!-- Vector Icons -->
+	<!-- System Notification -->
+	<key>UIBackgroundModes</key>
+		<array>
+    <string>remote-notification</string>
+		</array>
+	<!-- System Notification -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
 	<key>UILaunchStoryboardName</key>
