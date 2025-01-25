@@ -1,8 +1,12 @@
 import notifee, {AndroidStyle} from '@notifee/react-native';
 import {processAvatarImage} from './NotificationService';
 import {store} from '../redux/store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import {initiateSocket, getSocket} from '../socket';
 
 let quitStateNavigationData = null;
+let reconnectionTimeout = null;
 
 export const setQuitStateNavigation = data => {
   quitStateNavigationData = data;
@@ -14,6 +18,43 @@ export const getQuitStateNavigation = () => {
   return data;
 };
 
+const handleSocketReconnection = async () => {
+  try {
+    const userStr = await AsyncStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      const socket = getSocket();
+
+      if (!socket?.connected && user) {
+        console.log('Reconnecting socket from notification handler');
+        if (reconnectionTimeout) {
+          clearTimeout(reconnectionTimeout);
+        }
+
+        // Delay socket reconnection to ensure proper state
+        reconnectionTimeout = setTimeout(async () => {
+          const currentSocket = getSocket();
+          if (!currentSocket?.connected) {
+            await initiateSocket(user);
+          }
+        }, 1000);
+
+        return new Promise(resolve => {
+          if (socket) {
+            socket.once('connect', () => {
+              resolve();
+            });
+          } else {
+            resolve();
+          }
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Socket reconnection error:', error);
+  }
+};
+
 export const handleNotification = async remoteMessage => {
   try {
     const channelId = 'chat_messages';
@@ -21,9 +62,22 @@ export const handleNotification = async remoteMessage => {
       ? JSON.parse(remoteMessage.data.chatData)
       : null;
 
-    // Store for quit state navigation only if app is not authenticated
+    // Manage socket connection based on app state
+    if (remoteMessage.from === 'background' || !store.getState().auth?.token) {
+      await handleSocketReconnection();
+    }
+
+    // Persist navigation data for killed state
     if (!store.getState().auth?.token && chatData) {
       setQuitStateNavigation(chatData);
+      await AsyncStorage.setItem(
+        'lastNotificationData',
+        JSON.stringify(chatData),
+      );
+      await AsyncStorage.setItem(
+        'lastNotificationTimestamp',
+        Date.now().toString(),
+      );
     }
 
     const isGroupChat = chatData?.isGroupChat || false;
@@ -32,6 +86,7 @@ export const handleNotification = async remoteMessage => {
       remoteMessage.notification?.title ||
       'Unknown Sender';
 
+    // Group messages by sender
     const notifications = await notifee.getDisplayedNotifications();
     const existingNotification = notifications.find(
       n =>
@@ -56,7 +111,12 @@ export const handleNotification = async remoteMessage => {
       await notifee.displayNotification({
         id: existingNotification.id,
         title: chatTitle,
-        data: chatData ? {chatData: JSON.stringify(chatData)} : {},
+        data: chatData
+          ? {
+              chatData: JSON.stringify(chatData),
+              timestamp: Date.now().toString(),
+            }
+          : {},
         android: {
           channelId,
           smallIcon: 'ic_launcher',
@@ -91,7 +151,12 @@ export const handleNotification = async remoteMessage => {
     } else {
       await notifee.displayNotification({
         title: chatTitle,
-        data: chatData ? {chatData: JSON.stringify(chatData)} : {},
+        data: chatData
+          ? {
+              chatData: JSON.stringify(chatData),
+              timestamp: Date.now().toString(),
+            }
+          : {},
         android: {
           channelId,
           smallIcon: 'ic_launcher',
@@ -123,7 +188,14 @@ export const handleNotification = async remoteMessage => {
         },
       });
     }
+
+    return chatData;
   } catch (error) {
     console.error('Error handling notification:', error);
+  } finally {
+    if (reconnectionTimeout) {
+      clearTimeout(reconnectionTimeout);
+      reconnectionTimeout = null;
+    }
   }
 };

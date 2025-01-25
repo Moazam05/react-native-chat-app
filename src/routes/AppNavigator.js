@@ -27,9 +27,8 @@ const MainStack = () => {
     let timer;
     const handleQuitStateNavigation = async () => {
       if (currentUser?.token) {
-        const chatData = getQuitStateNavigation();
+        const chatData = await getQuitStateNavigation();
         if (chatData) {
-          // Wait for Home screen to be fully loaded
           timer = setTimeout(() => {
             navigation.navigate('Chat', {
               userId: chatData.isGroupChat ? null : chatData.userId,
@@ -37,34 +36,27 @@ const MainStack = () => {
               isGroupChat: chatData.isGroupChat,
               chatName: chatData.chatName,
             });
-          }, 1500); // Wait for Splash -> Home transition
+          }, 1500);
         }
       }
     };
 
     handleQuitStateNavigation();
-    return () => {
-      if (timer) {
-        clearTimeout(timer);
-      }
-    };
+    return () => timer && clearTimeout(timer);
   }, [currentUser?.token]);
 
   useEffect(() => {
+    let socket;
     const setupSocketConnection = async () => {
       try {
         if (currentUser?.data?.user) {
-          const socket = getSocket();
-          if (!socket || !socket.connected) {
+          socket = getSocket();
+          if (!socket?.connected) {
             console.log(
               'Initializing socket for user:',
               currentUser.data.user.username,
             );
-            const socketInstance = initiateSocket(currentUser.data.user);
-
-            socketInstance.on('user online', () => {});
-            socketInstance.on('user offline', () => {});
-            socketInstance.on('online users', () => {});
+            socket = await initiateSocket(currentUser.data.user);
           }
         }
       } catch (error) {
@@ -73,16 +65,12 @@ const MainStack = () => {
     };
 
     setupSocketConnection();
-
-    return () => {
-      disconnectSocket();
-    };
+    return () => socket && disconnectSocket();
   }, [currentUser?.data?.user?._id]);
 
   return (
     <Stack.Navigator screenOptions={{headerShown: false}}>
       <Stack.Screen name="Splash" component={Splash} />
-
       {!currentUser?.token ? (
         <>
           <Stack.Screen
